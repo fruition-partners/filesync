@@ -26,7 +26,8 @@ Or, continue with the steps below.
 **Step 1.** Ensure the [JSON Web Service plugin](http://wiki.servicenow.com/index.php?title=JSON_Web_Service) is
 activated for your instance.
 
-**Step 2.** Unzip **FileSync-v0.1.0.zip** into your desired install path, for example:
+**Step 2.** Download **[FileSync-v0.1.0.zip](https://github.com/fruition-partners/filesync/raw/master/FileSync-v0.1.0.zip)**
+and unzip into your desired install path, for example:
 
 * On Windows: `c:\dev\tools\filesync`
 * On Mac: `/Applications/filesync`
