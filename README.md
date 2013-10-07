@@ -18,7 +18,7 @@ existing scripts related to your project.
 ## Quick Start
 
 Download **[FileSync-v0.1.0.zip](https://github.com/fruition-partners/filesync/raw/master/FileSync-v0.1.0.zip)** and
-check out the [Intro video](https://vimeo.com/76378234) for a walk-through of installing, configuring and using FileSync.
+check out the [video walk-through](https://vimeo.com/76378234) of installing, configuring and using FileSync.
 
 Or, continue with the steps below.
 
