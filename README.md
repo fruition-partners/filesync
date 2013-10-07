@@ -15,6 +15,12 @@ Adding an empty file, or clearing and saving an existing file, refreshes the loc
 version, syncing *from* the instance *to* the local file. This is an easy way to populate your project folder with
 existing scripts related to your project.
 
+## Quick Start
+
+Check out the [Intro video](https://vimeo.com/76378234) for a walk-through of installing, configuring and using FileSync.
+
+Or, continue with the steps below.
+
 ## Installation
 
 **Step 1.** Ensure the [JSON Web Service plugin](http://wiki.servicenow.com/index.php?title=JSON_Web_Service) is
