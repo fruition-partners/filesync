@@ -51,7 +51,8 @@ function sncClient(config) {
             var urlObj = {
                 pathname: '/' + request.table + '.do',
                 query: {
-                    JSON: '',
+                    // DP@SNC change : JSONv2 not JSON (Eureka+)
+                    JSONv2: '',
                     sysparm_action: request.action
                 }
             };
