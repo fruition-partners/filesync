@@ -1,4 +1,9 @@
-# FileSync
+# FileSync (forked and improved!)
+
+## Intro
+
+This is a fork of the fruition-parteners filesync repo (looks abandoned). This repository aims to add support for current versions of ServiceNow, clean up code managment (to allow more contribution!) and provide further solutions to common "editing in ServiceNow environment" issues (eg, conflict saves).
+
 
 ## Overview
 
