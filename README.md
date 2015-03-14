@@ -150,14 +150,18 @@ record on the instance, then add the empty local file and start editing your scr
 Considering ServiceNow does not handle merge conflicts at all, this is a major goal of this tool! Contributions to help achieve this road map or improve the tool in general are **greatly** appreciated.
 
 - [x] support latest versions (Eurkea+) of ServiceNow
-- [ ] add protocol support to use http:// for localhost setups
+- [x] add protocol support to use http:// for localhost setups
 - [ ] check if the record has been updated by someone else before uploading changes and warn the user and cancel the upload (basic conflict management)
-- [ ] add notification (mac OS) to signify that the upload is complete (or failed)
+- [x] add notification (mac OS) to signify that the upload is complete (or failed)
 - [ ] handle record conflicts via saving "file.diff-remote.js" and "file.diff-to-merge.js" files as applicable. On repeat try, if only "file.diff-to-merge.js" exists then upload this file assuming user has resolved merge conflict.... **needs some more thought!**
-- [ ] upgrade node binaries to latest versions
+- [ ] upgrade node binaries to latest versions (currently version "v0.8.25")
 - [ ] use standard npm package.json setup to specify 3rd part node_modules
 - [ ] open simple diff tool to handle merging changes (command line "diff" or mac OS X Code "FileMerge")
 - [ ] add record browser to automatically download chosen files.
+
+Nice to haves
+- [ ] option to re-download all files from instance
+- [ ] notifications play sounds, show more info, are clickable etc.
 
 ## Changes
 
@@ -165,6 +169,7 @@ Considering ServiceNow does not handle merge conflicts at all, this is a major g
  * Update readme and add road map. Encourage contribution!
  * Refactored code setup and allow config file to be outside of repo
  * Enable non 'https' instance connections
+ * Added notification support (OS X)
 
 * 2015-03-10
  * Added support for Eureka+ versions.
@@ -184,3 +189,14 @@ distribution contents:
 * config.js - a module used to load and validate and app.config.json file
 * snc-client.js - a module that interacts with SN JSON Web Service to receive and send updates to instance
 * node_modules - folder containing 3rd-party node.js modules (from NPM) used to build app
+
+## Windows support
+
+The original version supports windows without any issues. As I don't use windows, I can't easily test the fixes and features I've added in this repo. If you would like to help test and fix things for windows then please submit a pull request or contact me.
+
+Below is a summary of windows support
+
+Feature | Windows | Mac
+------------ | ------------ | -------------
+Notifications | Not yet supported | Y
+Home dir config | Not tested | Y

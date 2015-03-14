@@ -8,6 +8,19 @@ var path = require('path');
 var config = require('./config');
 var sncClient = require('./snc-client');
 
+var isMac = /^darwin/.test(process.platform);
+//var isWin = /^win/.test(process.platform);
+
+if(isMac) {
+    var notify = require('osx-notifier');
+}
+// a bunch of notification codes to be re-used
+var UPLOAD_COMPLETE = 1;
+var UPLOAD_ERROR = -1;
+var RECEIVED_FILE = 2;
+var RECEIVED_FILE_ERROR = -2;
+var RECORD_NOT_FOUND = -2.1;
+
 function handleError(err, context) {
     console.error('Error:'.red, err);
     if (context) {
@@ -71,16 +84,80 @@ function receive(file, map) {
 
     snc.table(db.table).getRecords(db.query, function (err, obj) {
         if (err) return handleError(err, db);
-        if (obj.records.length === 0) return console.log('No records found:'.yellow, db);
+        if (obj.records.length === 0) {
+            notifyUser(RECORD_NOT_FOUND, {table: map.table, file: map.keyValue, field: map.field});
+            return console.log('No records found:'.yellow, db);
+        }
 
         console.log('Received:'.green, db);
 
         return fs.writeFile(file, obj.records[0][db.field], function (err) {
-            if (err) return handleError(err, file);
+            if (err) {
+                notifyUser(RECEIVED_FILE_ERROR, {table: map.table, file: map.keyValue, field: map.field});
+                return handleError(err, file);
+            }
 
+            notifyUser(RECEIVED_FILE, {table: map.table, file: map.keyValue, field: map.field});
             return console.log('Saved:'.green, {file: file});
         });
     });
+}
+
+// notifies the user in a non-command line kind of way
+// currently supports OSX notifactions only...
+// (consider using https://github.com/mikaelbr/node-notifier or https://github.com/dylang/grunt-notify)
+function notifyUser(code, args) {
+
+    if (config.debug) {
+        console.log('notifying with code: '+code);
+    }
+
+    var notifyArgs = {};
+    // default response
+    notifyArgs = {
+        type: 'info',
+        title: 'Unknown Notification',
+        subtitle: 'WTF?',
+        message: 'Please look into notifyUser() for code: ' + code
+    };
+
+    if(code == UPLOAD_COMPLETE) {
+        notifyArgs = {
+            type: 'pass',
+            title: 'Upload Complete',
+            subtitle: args.file,
+            message: 'Took no time at all!'
+        };
+    } else if(code == UPLOAD_ERROR) {
+
+    } else if(code == RECEIVED_FILE) {
+        notifyArgs = {
+            type: 'pass',
+            title: 'Download Complete',
+            subtitle: '',
+            message: args.file + ' (' + args.table +':'+ args.field + ')//'
+        };
+    } else if(code == RECEIVED_FILE_ERROR) {
+        notifyArgs = {
+            type: 'fail',
+            title: 'Failed to Download file',
+            subtitle: '',
+            message: args.file + ' (' + args.table +':'+ args.field + ')'
+        };
+    } else if(code == RECORD_NOT_FOUND) {
+        notifyArgs = {
+            type: 'fail',
+            title: 'Could not find record',
+            subtitle: '',
+            message: args.file + ' (' + args.table +':'+ args.field + ')'
+        };
+    }
+    if(isMac) {
+        notify(notifyArgs);
+    } else {
+        // windows support?
+        // linux support?
+    }
 }
 
 function send(file, map) {
@@ -94,8 +171,11 @@ function send(file, map) {
         body[db.field] = data;
 
         return snc.table(db.table).update(db.query, body, function (err, obj) {
-            if (err) return handleError(err, db);
-
+            if (err) {
+                notifyUser(UPLOAD_ERROR, {file: map.keyValue});
+                return handleError(err, db);
+            }
+            notifyUser(UPLOAD_COMPLETE, {file: map.keyValue});
             return console.log('Updated:'.green, db);
         });
     });
