@@ -2,7 +2,7 @@
 
 ## Intro
 
-This is a fork of the fruition-parteners filesync repo (looks abandoned). This repository aims to add support for current versions of ServiceNow, clean up code managment (to allow more contribution!) and provide further solutions to common "editing in ServiceNow environment" issues (eg, conflict saves).
+This is a fork of the fruition-parteners filesync repo (looks abandoned). This repository aims to add support for current versions of ServiceNow, clean up code managment (to allow more contribution!) and provide further solutions to common "editing in ServiceNow environment" issues (eg, conflict saves). See the **Road Map** below for more info. **Contributors wanted!**
 
 
 ## Overview
@@ -10,7 +10,7 @@ This is a fork of the fruition-parteners filesync repo (looks abandoned). This r
 FileSync synchronizes local file changes to mapped records in ServiceNow instances.
 
 This enables ServiceNow developers to use their favorite integrated development environments (IDEs) and text editors
-like WebStorm and Sublime for editing JavaScript, HTML, Jelly and other code - without wasting time and interrupting
+like WebStorm, Sublime and Brackets for editing JavaScript, HTML, Jelly and other code - without wasting time and interrupting
 development workflow copying and pasting code into a browser.
 
 When a file changes within a configured root (project) folder, the parent folder and file name are used to identify the
@@ -22,23 +22,15 @@ existing scripts related to your project.
 
 ## Quick Start
 
-Download **[FileSync-v0.1.0.zip](https://github.com/fruition-partners/filesync/raw/master/FileSync-v0.1.0.zip)** and
-check out the **[video walk-through](https://vimeo.com/76383815)** of installing, configuring and using FileSync.
+**[Download the repository](https://github.com/dynamicdan/filesync/archive/master.zip)** and check out the **[video walk-through](https://vimeo.com/76383815)** of installing, configuring and using FileSync.
 
-Or, continue with the steps below.
+Configure the app.config.js file as required per **app.config.json settings** below. Run the Windows (filesync.bat) or Mac (filesync.command) based app launcher.
 
 ## Installation
 
-**Step 1.** Ensure the **[JSON Web Service plugin](http://wiki.servicenow.com/index.php?title=JSON_Web_Service)** is
-activated for your instance.
+**Step 1.** Ensure that your instance is running with a version greater or equal to Eureka to make use of the JSONv2 API (enabled by default).
 
-**Step 2.** Download **[FileSync-v0.1.0.zip](https://github.com/fruition-partners/filesync/raw/master/FileSync-v0.1.0.zip)**
-and unzip into your desired install path, for example:
-
-* On Windows: `c:\dev\tools\filesync`
-* On Mac: `/Applications/filesync`
-
-**Step 3.** Create a local folder structure for your project / source files. Project folders will be mapped to root
+**Step 2.** Create a local folder structure for your project / source files. Project folders will be mapped to root
 folders in the **app.config.json** config file. The following example folder structure is mapped in the
 **app.config.json settings** section below:
 
@@ -51,11 +43,11 @@ folders in the **app.config.json** config file. The following example folder str
             script_includes
             ui_pages
 
-**Step 4.** Edit **app.config.json**.
+**Step 3.** Edit **app.config.json**.
 
 * Review the **app.config.json settings** section below for guidance. **Please read all comments.**
-* Configure at least one root (project) folder to host, user, pass mapping. user and pass will be encoded and replaced
-by an auth key at runtime.
+* Configure at least one root (project) folder to host, user, pass mapping. **"user"** and **"pass"** will be encoded and replaced
+by an **"auth"** key at runtime.
 * **Note:** You must restart FileSync any time you update app.config.json.
 
 ## Usage
@@ -147,6 +139,30 @@ record on the instance, then add the empty local file and start editing your scr
         },
         "debug": false                              // set to true to enable debug logging
     }
+
+## Road Map
+
+Considering ServiceNow does not handle merge conflicts at all, this is a major goal of this tool! Contributions to help achieve this road map or improve the tool in general are **greatly** appreciated.
+
+- [x] support latest versions (Eurkea+) of ServiceNow
+- [ ] add protocol support to use http:// for localhost setups
+- [ ] check if the record has been updated by someone else before uploading changes and warn the user and cancel the upload (basic conflict management)
+- [ ] add notification (mac OS) to signify that the upload is complete (or failed)
+- [ ] handle record conflicts via saving "file.diff-remote.js" and "file.diff-to-merge.js" files as applicable. On repeat try, if only "file.diff-to-merge.js" exists then upload this file assuming user has resolved merge conflict.... **needs some more thought!**
+- [ ] upgrade node binaries to latest versions
+- [ ] use standard npm package.json setup to specify 3rd part node_modules
+- [ ] open simple diff tool to handle merging changes (command line "diff" or mac OS X Code "FileMerge")
+- [ ] add record browser to automatically download chosen files.
+
+## Changes
+
+* 2015-03-14
+ * Update readme and add road map. Encourage contribution!
+
+* 2015-03-10
+ * Added support for Eureka+ versions.
+ * Initial clone and file re-structure
+
 
 ## Architecture
 
