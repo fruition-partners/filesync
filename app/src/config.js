@@ -1,7 +1,7 @@
 // Copyright (c) 2013 Fruition Partners, Inc.
 'use strict';
 
-var DEFAULT_CONFIG_FILE = './app.config.json';
+var DEFAULT_CONFIG_FILE = '../app.config.json';
 // users can specify a file outside of the repo
 var PRIVATE_CONFIG_FILE = _getHomeDir() + '/.filesync/app.config.json';
 // the location of the config file (populated based on if PRIVATE_CONFIG_FILE exists or not)

@@ -2,4 +2,4 @@
 
 cd "`dirname "$0"`" 
 echo "Starting FileSync..."
-./node-darwin app
+./node-darwin src/app

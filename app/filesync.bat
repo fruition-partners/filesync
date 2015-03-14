@@ -1,4 +1,4 @@
 @echo off
 echo "Starting FileSync..."
-node.exe app
+node.exe src\app
 pause
