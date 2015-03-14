@@ -13,7 +13,10 @@ function sncClient(config) {
         user = parts[0],
         pass = parts[1];
 
-    var client = restify.createJsonClient({url: 'https://' + config.host});
+    // DP@SNC change : support testing on localhost but default to https
+    var protocol = config.protocol ? config.protocol : 'https';
+
+    var client = restify.createJsonClient({url: protocol + '://' + config.host});
     client.basicAuth(user, pass);
 
     function table(tableName) {
