@@ -108,6 +108,11 @@ record on the instance, then add the empty local file and start editing your scr
             "c:\\dev\\project_b": {                 // add additional root mappings as needed
                 "host": "demo002.service-now.com",
                 "auth": "YWRtaW46YWRtaW4="          // example of encoded user/pass
+            },
+            "/Users/joe.developer/localhost/records": { // mac os localhost example
+                "host": "localhost:16001",
+                "protocol": "http",                     // if https is not supported then force http here
+                "auth": "YWRtaW46YWRtaW4="
             }
         },
         // maps a subfolder of a root folder to a table on the configured instance
@@ -158,6 +163,8 @@ Considering ServiceNow does not handle merge conflicts at all, this is a major g
 
 * 2015-03-14
  * Update readme and add road map. Encourage contribution!
+ * Refactored code setup and allow config file to be outside of repo
+ * Enable non 'https' instance connections
 
 * 2015-03-10
  * Added support for Eureka+ versions.
