@@ -151,12 +151,12 @@ Considering ServiceNow does not handle merge conflicts at all, this is a major g
 
 - [x] support latest versions (Eurkea+) of ServiceNow
 - [x] add protocol support to use http:// for localhost setups
-- [ ] check if the record has been updated by someone else before uploading changes and warn the user and cancel the upload (basic conflict management)
+- [x] check if the record has been updated on the server before uploading changes and warn the user and cancel the upload (basic conflict management)
 - [x] add notification (mac OS) to signify that the upload is complete (or failed)
-- [ ] handle record conflicts via saving "file.diff-remote.js" and "file.diff-to-merge.js" files as applicable. On repeat try, if only "file.diff-to-merge.js" exists then upload this file assuming user has resolved merge conflict.... **needs some more thought!**
+- [ ] when an update conflict has been detected write out the remote file and launch a diff app (command line "diff" or mac OS X Code "FileMerge") for the user to help resolve the differences
+- [ ] allow upload override of server record if the user has made a merge of remote and local data
 - [ ] upgrade node binaries to latest versions (currently version "v0.8.25")
 - [ ] use standard npm package.json setup to specify 3rd part node_modules
-- [ ] open simple diff tool to handle merging changes (command line "diff" or mac OS X Code "FileMerge")
 - [ ] add record browser to automatically download chosen files.
 
 Nice to haves
@@ -164,6 +164,9 @@ Nice to haves
 - [ ] notifications play sounds, show more info, are clickable etc.
 
 ## Changes
+
+* 2015-03-16
+ * added conflict management! Now it's impossible to overwrite server records that would result in data loss!
 
 * 2015-03-14
  * Update readme and add road map. Encourage contribution!
@@ -181,14 +184,16 @@ Nice to haves
 FileSync was built using [Node.js](http://nodejs.org/), a platform built on Chrome's JavaScript runtime. Zipped
 distribution contents:
 
+* legacy-FileSync-v0.1.0.zip - this file will go soon (pre-fork version of FileSync)
 * README.md - this file, written in [Markdown](http://daringfireball.net/projects/markdown/) syntax
-* node.exe, node-darwin - Node.js runtime binaries
-* filesync.bat, filesync.command - Windows and Mac batch/shell scripts for starting FileSync
-* app.config.json - configuration file with mapping of folders to instances/tables
-* app.js - main application that watches for file changes
-* config.js - a module used to load and validate and app.config.json file
-* snc-client.js - a module that interacts with SN JSON Web Service to receive and send updates to instance
-* node_modules - folder containing 3rd-party node.js modules (from NPM) used to build app
+* app/node.exe, node-darwin - Node.js runtime binaries
+* app/filesync.bat, filesync.command - Windows and Mac batch/shell scripts for starting FileSync
+* app/app.config.json - configuration file with mapping of folders to instances/tables
+* app/node_modules - folder containing 3rd-party node.js modules (from NPM) used to build app
+* app/src/app.js - main application that watches for file changes
+* app/src/config.js - a module used to load and validate and app.config.json file
+* app/src/snc-client.js - a module that interacts with SN JSON Web Service to receive and send updates to instance
+
 
 ## Windows support
 
