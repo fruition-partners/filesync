@@ -3,10 +3,16 @@
 
 var chokidar = require('chokidar');
 require('colors');
-var fs = require('fs');
+var fs = require('fs-extra');
 var path = require('path');
 var config = require('./config');
 var sncClient = require('./snc-client');
+
+// a directory to store hash information used to detect remote changes to records before trying to overwrite them
+var syncDir = '.sync';
+
+// store a collection of files being written out so that we can ignore them from our watch script
+var filesInprogress = {};
 
 var isMac = /^darwin/.test(process.platform);
 //var isWin = /^win/.test(process.platform);
@@ -20,12 +26,22 @@ var UPLOAD_ERROR = -1;
 var RECEIVED_FILE = 2;
 var RECEIVED_FILE_ERROR = -2;
 var RECORD_NOT_FOUND = -2.1;
+var NOT_IN_SYNC = -3;
+
+// used to generate a hash of a file
+var crypto = require('crypto');
+
 
 function handleError(err, context) {
     console.error('Error:'.red, err);
     if (context) {
         console.error('  context:'.red, context);
     }
+}
+function _getHomeDir() {
+    // should also be windows friendly but not tested
+    var ans = process.env[(process.platform == 'win32') ? 'USERPROFILE' : 'HOME'];
+    return ans;
 }
 
 function getRoot(file) {
@@ -77,6 +93,18 @@ function getSncClient(root) {
     return host.client;
 }
 
+// maintain a list of files being written
+function writingFile(file) {
+    filesInprogress[file] = true;
+}
+function doneWritingFile(file) {
+    delete filesInprogress[file];
+}
+function isWritingFile(file) {
+    console.log('checking writing file for : '+file);
+    return filesInprogress[file];
+}
+
 function receive(file, map) {
     var snc = getSncClient(map.root);
     // note: creating a new in scope var so cb gets correct map - map.name was different at cb exec time
@@ -91,12 +119,17 @@ function receive(file, map) {
 
         console.log('Received:'.green, db);
 
+        writingFile(file);
+
         return fs.writeFile(file, obj.records[0][db.field], function (err) {
+            doneWritingFile(file);
             if (err) {
                 notifyUser(RECEIVED_FILE_ERROR, {table: map.table, file: map.keyValue, field: map.field});
                 return handleError(err, file);
             }
 
+            // write out hash for collision detection
+            saveHash(map.root, file, obj.records[0][db.field]);
             notifyUser(RECEIVED_FILE, {table: map.table, file: map.keyValue, field: map.field});
             return console.log('Saved:'.green, {file: file});
         });
@@ -151,6 +184,13 @@ function notifyUser(code, args) {
             subtitle: '',
             message: args.file + ' (' + args.table +':'+ args.field + ')'
         };
+    } else if(code == NOT_IN_SYNC) {
+        notifyArgs = {
+            type: 'fail',
+            title: 'File not in sync!',
+            subtitle: 'Please update your local version first!',
+            message: args.file + ' (' + args.table +':'+ args.field + ')'
+        };
     }
     if(isMac) {
         notify(notifyArgs);
@@ -170,13 +210,29 @@ function send(file, map) {
         var body = {};
         body[db.field] = data;
 
-        return snc.table(db.table).update(db.query, body, function (err, obj) {
-            if (err) {
-                notifyUser(UPLOAD_ERROR, {file: map.keyValue});
-                return handleError(err, db);
+        // only allow an update if the instance is still in sync with the local env.
+        instanceInSync(snc, db, map, file, data, function (err, obj) {
+
+            if(!obj.inSync) {
+                notifyUser(NOT_IN_SYNC, {table: map.table, file: map.keyValue, field: map.field});
+                return;
             }
-            notifyUser(UPLOAD_COMPLETE, {file: map.keyValue});
-            return console.log('Updated:'.green, db);
+            if(obj.noPushNeeded) {
+                console.log('Local and remote in sync, no need for push/send.');
+                return;
+            }
+
+            return snc.table(db.table).update(db.query, body, function (err, obj) {
+                if (err) {
+                    notifyUser(UPLOAD_ERROR, {file: map.keyValue});
+                    return handleError(err, db);
+                }
+
+                // update hash for collision detection
+                saveHash(map.root, file, data);
+                notifyUser(UPLOAD_COMPLETE, {file: map.keyValue});
+                return console.log('Updated:'.green, db);
+            });
         });
     });
 }
@@ -197,6 +253,11 @@ function onAdd(file, stats) {
 }
 
 function onChange(file, stats) {
+    if(isWritingFile(file)) {
+        console.log('Still writing out a file so ignoring: '+file);
+        return;
+    }
+
     var map = getSyncMap(file);
     if (!map) return;
 
@@ -208,6 +269,79 @@ function onChange(file, stats) {
         receive(file, map);
     }
 }
+
+// -------------------- hash functions for managing remote changes happening before local changes get uploaded
+function makeHash(data) {
+    var hash1 = crypto.createHash('md5').update(data).digest('hex');
+    return hash1;
+}
+function getHashFileLocation(rootDir, file) {
+    var syncFileRelative = file.replace(rootDir, '/' + syncDir);
+    var hashFile = rootDir + syncFileRelative;
+    return hashFile;
+}
+function saveHash(rootDir, file, data) {
+    var hash = makeHash(data);
+    var hashFile = getHashFileLocation(rootDir, file);
+    fs.outputFile(hashFile, hash, function (err) {
+        if (err) {
+           console.log('Could not write out hash file'.red, hashFile);
+        }
+    });
+}
+function getLocalHash(rootDir, file) {
+    var hashFile = getHashFileLocation(rootDir, file);
+    var fContents = '';
+    try {
+        fContents = fs.readFileSync(hashFile, 'utf8');
+    } catch (err) {
+        // don't care.
+        console.log('--------- hash file not yet existing ---------------');
+    }
+    return fContents;
+}
+/* This first gets the remote record and compares with the previous
+ * downloaded version. If the same then allow upload (ob.inSync is true).
+ *
+ */
+function instanceInSync(snc, db, map, file, newData, callback) {
+    console.log('Comparing remote version with previous local version...');
+    // TODO : duplicate code here
+    snc.table(db.table).getRecords(db.query, function (err, obj) {
+        if (err) return handleError(err, db);
+        if (obj.records.length === 0) {
+            notifyUser(RECORD_NOT_FOUND, {table: map.table, file: map.keyValue, field: map.field});
+            return console.log('No records found:'.yellow, db);
+        }
+
+        console.log('Received:'.green, db);
+        var remoteVersion = obj.records[0][db.field];
+        var remoteHash = makeHash(remoteVersion);
+        var previousLocalVersionHash = getLocalHash(map.root, file);
+        var newDataHash = makeHash(newData);
+
+        obj.inSync = false; // adding property. default to false
+        obj.noPushNeeded = false; // default to false to assume we must upload
+
+        // case 1. Records local and remote are the same
+        if(newDataHash == remoteHash) {
+            // handle the scenario where the remote version was changed to match the local version.
+            // when this happens update the local hash as there would be no collision here (and nothing to push!)
+            obj.inSync = true;
+            obj.noPushNeeded = true;
+            // update local hash.
+            saveHash(map.root, file, newData);
+
+        // case 2. the last local downloaded version matches the server version (stanard collision test scenario)
+        } else if(remoteHash == previousLocalVersionHash) {
+            obj.inSync = true;
+        }
+        // case 3, the remote version changed since we last downloaded it = not in sync
+        callback(err, obj);
+    });
+}
+// -----------------------------------------------------------
+
 
 function logConfig(config) {
     console.log('');
@@ -231,13 +365,15 @@ function watchFolders(config) {
     logConfig(config);
 
     var watchedFolders = Object.keys(config.roots);
-
-    chokidar.watch(watchedFolders, {persistent: true})
+    var ignoreDir = new RegExp("/" + syncDir + "/");
+    chokidar.watch(watchedFolders, {persistent: true, ignored: ignoreDir})
         .on('add', onAdd)
         .on('change', onChange)
         .on('error', function (error) {
             console.error('Error watching files: %s'.red, error)
         });
+    // TODO : clear up old hash files when files removed..
+    // .on('unlink', function(path) {console.log('File', path, 'has been removed');})
 }
 
 watchFolders(config);
