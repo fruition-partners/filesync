@@ -87,9 +87,9 @@
             "table": "content_block_programmatic",
             "key": "name",
             "fields": {
-                "xml": "programmatic_content"
+                "xhtml": "programmatic_content"
             }
-        },
+        }
     },
     "debug": false
 }
