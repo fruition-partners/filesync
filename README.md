@@ -94,9 +94,11 @@ record on the instance, then add the empty local file and start editing your scr
 <http://www.jslint.com/>*
 
 Note that it is now possible to store your app.config.json file separate from the repo. Just save your file in your home directory as below:
+
  * on mac: `~/.filesync/app.config.json`
  * on windows: `c:\\<HOME DIR>\.filesync\app.config.json`
 
+```
     {
         // maps a root (project) folder to an instance
         "roots": {
@@ -148,6 +150,7 @@ Note that it is now possible to store your app.config.json file separate from th
         },
         "debug": false                              // set to true to enable debug logging
     }
+```
 
 ## Road Map
 
