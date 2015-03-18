@@ -22,6 +22,23 @@ function sncClient(config) {
     function table(tableName) {
 
         function validateResponse(err, res, obj) {
+
+            // special failing case (connections blocked etc.)
+            if (!res && err) {
+                var help = '';
+                if(err.code == 'ECONNREFUSED') {
+                    help = '**Missing interent connection or connection was refused!**.. could also be that a partiular file cannot be downloaded because it is 0 bytes (eg. empty script field)';
+                } else {
+                    help = 'Something failed badly.. internet connection rubbish?';
+                }
+                console.log(help);
+                var message = util.format('%s - %s', 'no response', http.STATUS_CODES[res.statusCode]);
+                if (help) message += ' - ' + help;
+                if (err) message += util.format('\ndetails: %j', err);
+                return new Error(message);
+            }
+
+            // standard responses
             if (res.statusCode !== 200) {
                 var help = '';
                 if (res.statusCode === 401) help = 'Check credentials.';

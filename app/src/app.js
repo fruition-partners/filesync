@@ -25,6 +25,7 @@ var UPLOAD_COMPLETE = 1;
 var UPLOAD_ERROR = -1;
 var RECEIVED_FILE = 2;
 var RECEIVED_FILE_ERROR = -2;
+var RECEIVED_FILE_0_BYTES = -20;
 var RECORD_NOT_FOUND = -2.1;
 var NOT_IN_SYNC = -3;
 
@@ -117,6 +118,10 @@ function receive(file, map) {
             return console.log('No records found:'.yellow, db);
         }
 
+        if(obj.records[0][db.field].length < 1) {
+            console.log('**WARNING : this record is 0 bytes');
+            notifyUser(RECEIVED_FILE_0_BYTES, {table: map.table, file: map.keyValue, field: map.field});
+        }
         console.log('Received:'.green, db);
 
         writingFile(file);
@@ -139,6 +144,8 @@ function receive(file, map) {
 // notifies the user in a non-command line kind of way
 // currently supports OSX notifactions only...
 // (consider using https://github.com/mikaelbr/node-notifier or https://github.com/dylang/grunt-notify)
+// TODO : notifications sent at the same time may not be displayed to the user in the normal fashion (os X)
+//        but are being received and exist in the notification center. Consider adding delay or merging notifications.
 function notifyUser(code, args) {
 
     if (config.debug) {
@@ -191,7 +198,15 @@ function notifyUser(code, args) {
             subtitle: 'Please update your local version first!',
             message: args.file + ' (' + args.table +':'+ args.field + ')'
         };
+    } else if (code == RECEIVED_FILE_0_BYTES) {
+        notifyArgs = {
+            type: 'info',
+            title: 'Record field has no data!',
+            subtitle: 'Please add some content to your new file.',
+            message: args.file + ' (' + args.table +':'+ args.field + ')'
+        };
     }
+
     if(isMac) {
         notify(notifyArgs);
     } else {
@@ -281,6 +296,9 @@ function getHashFileLocation(rootDir, file) {
     return hashFile;
 }
 function saveHash(rootDir, file, data) {
+    if (config.debug) {
+        console.log('Saving hash for file: '+file);
+    }
     var hash = makeHash(data);
     var hashFile = getHashFileLocation(rootDir, file);
     fs.outputFile(hashFile, hash, function (err) {
