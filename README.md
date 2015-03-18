@@ -160,7 +160,9 @@ Considering ServiceNow does not handle merge conflicts at all, this is a major g
 - [ ] add record browser to automatically download chosen files.
 
 Nice to haves
+- [ ] auto create folder structure for user
 - [ ] option to re-download all files from instance
+- [ ] auto download records created or updated by a given user ID
 - [ ] notifications play sounds, show more info, are clickable etc.
 
 ## Changes
@@ -193,7 +195,7 @@ distribution contents:
 * app/src/app.js - main application that watches for file changes
 * app/src/config.js - a module used to load and validate and app.config.json file
 * app/src/snc-client.js - a module that interacts with SN JSON Web Service to receive and send updates to instance
-
+* [root folder] / .sync/ - a directory used to store information to help with synchronisation with the instance
 
 ## Windows support
 

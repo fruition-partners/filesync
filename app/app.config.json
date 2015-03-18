@@ -82,7 +82,14 @@
             "fields": {
                 "js": "script"
             }
-        }
+        },
+        "dynamic_content_blocks": {
+            "table": "content_block_programmatic",
+            "key": "name",
+            "fields": {
+                "xml": "programmatic_content"
+            }
+        },
     },
     "debug": false
 }
