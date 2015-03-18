@@ -1,11 +1,6 @@
 // Copyright (c) 2013 Fruition Partners, Inc.
 'use strict';
 
-var DEFAULT_CONFIG_FILE = '../app.config.json';
-// users can specify a file outside of the repo
-var PRIVATE_CONFIG_FILE = _getHomeDir() + '/.filesync/app.config.json';
-// the location of the config file (populated based on if PRIVATE_CONFIG_FILE exists or not)
-var CONFIG_FILE = '';
 
 var assert = require('assert-plus');
 require('colors');
@@ -13,6 +8,18 @@ var fs = require('fs');
 var path = require('path');
 var restify = require('restify');
 var util = require('util');
+
+var DEFAULT_CONFIG_FILE = '../app.config.json';
+// users can specify a file outside of the repo
+var PRIVATE_CONFIG_FILE = homeConfigPath();
+// the location of the config file (populated based on if PRIVATE_CONFIG_FILE exists or not)
+var CONFIG_FILE = '';
+
+
+// OS friendly solution to path
+function homeConfigPath(type) {
+  return path.join(_getHomeDir(), '.filesync', 'app.config.json');
+}
 
 function saveConfig(config) {
     fs.writeFile(path.join(__dirname, CONFIG_FILE), JSON.stringify(config, null, 4), function (err) {

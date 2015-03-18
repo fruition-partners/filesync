@@ -1,0 +1,39 @@
+{
+  "name": "FileSync",
+  "version": "1.0.1",
+  "description": "Enables out of instance record updates for ServiceNow.",
+  "main": "src/app.js",
+  "dependencies": {
+    "colors": "^0.6.0-1",
+    "fs-extra": "^0.16.5",
+    "assert-plus": "^0.1.4",
+    "chokidar": "^0.6.2",
+    "restify": "^2.6.0",
+    "osx-notifier": "^0.2.1"
+  },
+  "engines": {
+    "node": ">=0.8"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dynamicdan/filesync"
+  },
+  "keywords": [
+    "servicenow",
+    "sync",
+    "files",
+    "updates",
+    "editing",
+    "instance"
+  ],
+  "author": "DynamicDan",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/dynamicdan/filesync/issues"
+  },
+  "homepage": "https://github.com/dynamicdan/filesync"
+}

@@ -93,6 +93,10 @@ record on the instance, then add the empty local file and start editing your scr
 *Comments are included below for documentation purposes but are not valid in JSON files. You can validate JSON at
 <http://www.jslint.com/>*
 
+Note that it is now possible to store your app.config.json file separate from the repo. Just save your file in your home directory as below:
+ * on mac: `~/.filesync/app.config.json`
+ * on windows: `c:\\<HOME DIR>\.filesync\app.config.json`
+
     {
         // maps a root (project) folder to an instance
         "roots": {
@@ -153,12 +157,12 @@ Considering ServiceNow does not handle merge conflicts at all, this is a major g
 - [x] add protocol support to use http:// for localhost setups
 - [x] check if the record has been updated on the server before uploading changes and warn the user and cancel the upload (basic conflict management)
 - [x] add notification (mac OS) to signify that the upload is complete (or failed)
-- [ ] when an update conflict has been detected write out the remote file and launch a diff app (command line "diff" or mac OS X Code "FileMerge") for the user to help resolve the differences
+- [ ] when an update conflict has been detected write out the remote file and launch a diff app (command line "diff" or mac OS X Code "FileMerge" via "`opendiff <left> <right>`") for the user to help resolve the differences
 - [ ] allow upload override of server record if the user has made a merge of remote and local data
 
 - [ ] upgrade node binaries to latest versions (currently version "v0.8.25")
-- [ ] upgrade 3rd party node_modules (restify is at "2.6.0" but should be "3.0.1" which needs "node": ">=0.10")
-- [ ] use standard npm package.json setup to specify 3rd part node_modules
+- [ ] upgrade 3rd party node_modules (restify is at "2.6.0" but should be "3.0.1" which needs "node": ">=0.10" run `npm outdated` for details)
+- [x] use standard npm package.json setup to specify 3rd part node_modules
 
 
 
