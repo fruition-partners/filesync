@@ -23,24 +23,25 @@ function sncClient(config) {
 
         function validateResponse(err, res, obj) {
 
+            var help = '';
             // special failing case (connections blocked etc.)
             if (!res && err) {
-                var help = '';
-                if(err.code == 'ECONNREFUSED') {
-                    help = '**Missing interent connection or connection was refused!**.. could also be that a partiular file cannot be downloaded because it is 0 bytes (eg. empty script field)';
-                } else {
-                    help = 'Something failed badly.. internet connection rubbish?';
-                }
+
+                var errorList = {
+                    'ECONNREFUSED': 'Missing interent connection or connection was refused! (too many requests?)',
+                    'ENOTFOUND': 'No connection available (do we have internet?)',
+                    'ETIMEDOUT': 'Connection timed out. Internet down?'
+                };
+
+                help = errorList[err.code] || 'Something failed badly.. internet connection rubbish?';
+                help += util.format('\ndetails: %j', err);
                 console.log(help);
-                var message = util.format('%s - %s', 'no response', http.STATUS_CODES[res.statusCode]);
-                if (help) message += ' - ' + help;
-                if (err) message += util.format('\ndetails: %j', err);
-                return new Error(message);
+                return new Error(help);
             }
 
             // standard responses
             if (res.statusCode !== 200) {
-                var help = '';
+
                 if (res.statusCode === 401) help = 'Check credentials.';
                 if (res.statusCode === 302) help = 'Verify JSON Web Service plugin is activated.';
                 var message = util.format('%s - %s', res.statusCode, http.STATUS_CODES[res.statusCode]);

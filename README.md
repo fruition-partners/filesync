@@ -155,20 +155,29 @@ Considering ServiceNow does not handle merge conflicts at all, this is a major g
 - [x] add notification (mac OS) to signify that the upload is complete (or failed)
 - [ ] when an update conflict has been detected write out the remote file and launch a diff app (command line "diff" or mac OS X Code "FileMerge") for the user to help resolve the differences
 - [ ] allow upload override of server record if the user has made a merge of remote and local data
+
 - [ ] upgrade node binaries to latest versions (currently version "v0.8.25")
+- [ ] upgrade 3rd party node_modules (restify is at "2.6.0" but should be "3.0.1" which needs "node": ">=0.10")
 - [ ] use standard npm package.json setup to specify 3rd part node_modules
-- [ ] add record browser to automatically download chosen files.
+
+
 
 Nice to haves
 - [ ] auto create folder structure for user
+- [ ] add record browser to automatically download chosen files.
 - [ ] option to re-download all files from instance
 - [ ] auto download records created or updated by a given user ID
 - [ ] notifications play sounds, show more info, are clickable etc.
+- [ ] offline support? (keep track of files that are queued to upload when the connection is available again and retry).. maybe not. This could be dangerous if records get updated without someone to test them. Potentially workable if the last queued file is less than 3 minutes ago to cater for flaky mobile/roaming connections.
+
 
 ## Changes
 
+* 2015-03-18
+ * Fixed some trivial stuff regarding connection handling
+
 * 2015-03-16
- * added conflict management! Now it's impossible to overwrite server records that would result in data loss!
+ * Added conflict management! Now it's impossible to overwrite server records that would result in data loss!
 
 * 2015-03-14
  * Update readme and add road map. Encourage contribution!
