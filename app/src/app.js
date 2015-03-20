@@ -29,6 +29,8 @@ var RECEIVED_FILE_0_BYTES = -20;
 var RECORD_NOT_FOUND = -2.1;
 var NOT_IN_SYNC = -3;
 
+var COMPLEX_ERROR = -500;
+
 // used to generate a hash of a file
 var crypto = require('crypto');
 
@@ -38,6 +40,7 @@ function handleError(err, context) {
     if (context) {
         console.error('  context:'.red, context);
     }
+    notifyUser(COMPLEX_ERROR);
 }
 function _getHomeDir() {
     // should also be windows friendly but not tested
@@ -204,6 +207,13 @@ function notifyUser(code, args) {
             title: 'Record field has no data!',
             subtitle: 'Please add some content to your new file.',
             message: args.file + ' (' + args.table +':'+ args.field + ')'
+        };
+    } else if (code == COMPLEX_ERROR) {
+        notifyArgs = {
+            type: 'fail',
+            title: 'Connection Error',
+            subtitle: '',
+            message: 'Please see command line output for details.'
         };
     }
 

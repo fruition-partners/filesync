@@ -24,7 +24,7 @@ existing scripts related to your project.
 
 **[Download the repository](https://github.com/dynamicdan/filesync/archive/master.zip)** and check out the **[video walk-through](https://vimeo.com/76383815)** of installing, configuring and using FileSync.
 
-Configure the app.config.js file as required per **app.config.json settings** below. Run the Windows (filesync.bat) or Mac (filesync.command) based app launcher.
+Configure the app.config.js file as required per **[app.config.json settings](#appconfigjson-settings)** below. Run the Windows (filesync.bat) or Mac (filesync.command) based app launcher.
 
 ## Installation
 
@@ -115,8 +115,8 @@ Note that it is now possible to store your app.config.json file separate from th
                 "host": "demo002.service-now.com",
                 "auth": "YWRtaW46YWRtaW4="          // example of encoded user/pass
             },
-            "/Users/joe.developer/localhost/records": { // mac os localhost example
-                "host": "localhost:16001",
+            "/Users/joe.developer/instance/records": { // mac os non-https example
+                "host": "some.special.instance.com:16001",
                 "protocol": "http",                     // if https is not supported then force http here
                 "auth": "YWRtaW46YWRtaW4="
             }
@@ -148,7 +148,7 @@ Note that it is now possible to store your app.config.json file separate from th
             }
             ...
         },
-        "debug": false                              // set to true to enable debug logging
+        "debug": false                              // set to true to enable more detailed debug logging
     }
 ```
 
@@ -157,7 +157,7 @@ Note that it is now possible to store your app.config.json file separate from th
 Considering ServiceNow does not handle merge conflicts at all, this is a major goal of this tool! Contributions to help achieve this road map or improve the tool in general are **greatly** appreciated.
 
 - [x] support latest versions (Eurkea+) of ServiceNow
-- [x] add protocol support to use http:// for localhost setups
+- [x] add protocol support to use http:// for on-premise setups
 - [x] check if the record has been updated on the server before uploading changes and warn the user and cancel the upload (basic conflict management)
 - [x] add notification (mac OS) to signify that the upload is complete (or failed)
 - [ ] when an update conflict has been detected write out the remote file and launch a diff app (command line "diff" or mac OS X Code "FileMerge" via "`opendiff <left> <right>`") for the user to help resolve the differences
@@ -176,6 +176,26 @@ Nice to haves
 - [ ] auto download records created or updated by a given user ID
 - [ ] notifications play sounds, show more info, are clickable etc.
 - [ ] offline support? (keep track of files that are queued to upload when the connection is available again and retry).. maybe not. This could be dangerous if records get updated without someone to test them. Potentially workable if the last queued file is less than 3 minutes ago to cater for flaky mobile/roaming connections.
+- [ ] save meta data recieved in request for user info (eg, sys_updated_on, sys_updated_by, sys_mod_count, description)
+- [ ] config option to log details to log file (help others send log info)
+- [ ] ignore hidden files better (.DS_Store)
+
+
+## Contributing workflow
+
+Here’s how we suggest you go about proposing a change to this project:
+
+1. [Fork this project][fork] to your account.
+2. [Create a branch][branch] for the change you intend to make.
+3. Make your changes to your fork.
+4. [Send a pull request][pr] from your fork’s branch to our `master` branch.
+
+Using the web-based interface to make changes is fine too, and will help you
+by automatically forking the project and prompting to send a pull request too.
+
+[fork]: http://help.github.com/forking/
+[branch]: https://help.github.com/articles/creating-and-deleting-branches-within-your-repository
+[pr]: http://help.github.com/pull-requests/
 
 
 ## Changes
