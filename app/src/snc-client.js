@@ -21,7 +21,10 @@ function sncClient(config) {
 
     function table(tableName) {
 
-        function validateResponse(err, res, obj) {
+        function validateResponse(err, req, res, obj, request) {
+
+            // consider moving low level debug to high level debug (end user as below)
+            if (debug) logResponse(err, req, res, obj, request);
 
             var help = '';
             // special failing case (connections blocked etc.)
@@ -62,9 +65,10 @@ function sncClient(config) {
         }
 
         function logResponse(err, req, res, obj, request) {
+            var resCode = res ? res.statusCode : 'no response';
             console.log('HTTP ' + req.method + ':', client.url.host, req.path,
                 '\nrequest:', request.postObj || '',
-                '\nresponse:', util.inspect({statusCode: res.statusCode, body: obj}, true, 10)
+                '\nresponse:', util.inspect({statusCode: resCode, body: obj}, true, 10)
             );
         }
 
@@ -83,8 +87,7 @@ function sncClient(config) {
             var path = url.format(urlObj);
 
             function handleResponse(err, req, res, obj) {
-                if (debug) logResponse(err, req, res, obj, request);
-                err = validateResponse(err, res, obj);
+                err = validateResponse(err, req, res, obj, request);
                 request.callback(err, obj);
             }
 
