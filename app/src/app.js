@@ -266,12 +266,11 @@ function onAdd(file, stats) {
     var map = getSyncMap(file);
     if (!map) return;
 
-    if (config.debug) console.log('Added:', {file: file, table: map.table, field: map.field});
-
     if (stats.size > 0) {
-        // TODO: insertRecord
+        // these files can be ignored (we only process empty files)
         return;
     }
+    if (config.debug) console.log('Added:', {file: file, table: map.table, field: map.field});
 
     console.log('Syncing empty file from instance', file);
     receive(file, map);

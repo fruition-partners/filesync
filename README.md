@@ -166,7 +166,7 @@ Considering ServiceNow does not handle merge conflicts at all, this is a major g
 - [ ] upgrade node binaries to latest versions (currently version "v0.8.25")
 - [ ] upgrade 3rd party node_modules (restify is at "2.6.0" but should be "3.0.1" which needs "node": ">=0.10" run `npm outdated` for details)
 - [x] use standard npm package.json setup to specify 3rd part node_modules
-
+- [ ] ignore hidden files better (Eg. ".DS_Store", ".jshintrc")
 
 
 Nice to haves
@@ -178,7 +178,6 @@ Nice to haves
 - [ ] offline support? (keep track of files that are queued to upload when the connection is available again and retry).. maybe not. This could be dangerous if records get updated without someone to test them. Potentially workable if the last queued file is less than 3 minutes ago to cater for flaky mobile/roaming connections.
 - [ ] save meta data recieved in request for user info (eg, sys_updated_on, sys_updated_by, sys_mod_count, description)
 - [ ] config option to log details to log file (help others send log info)
-- [ ] ignore hidden files better (.DS_Store)
 
 
 ## Contributing workflow
