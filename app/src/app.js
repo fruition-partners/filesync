@@ -1,12 +1,27 @@
 // Copyright (c) 2013 Fruition Partners, Inc.
-'use strict';
+
+
+// ---------------------------------------------------
+// 3rd party modules
+
+var argv = require('minimist')(process.argv.slice(2));
+//console.dir(argv);
 
 var chokidar = require('chokidar');
 require('colors');
 var fs = require('fs-extra');
 var path = require('path');
+// used to generate a hash of a file
+var crypto = require('crypto');
+
+
+// ---------------------------------------------------
+// custom code
 var config = require('./config');
 var sncClient = require('./snc-client');
+
+// ---------------------------------------------------
+
 
 // a directory to store hash information used to detect remote changes to records before trying to overwrite them
 var syncDir = '.sync';
@@ -20,6 +35,9 @@ var isMac = /^darwin/.test(process.platform);
 if(isMac) {
     var notify = require('osx-notifier');
 }
+
+
+// ---------------------------------------------------
 // a bunch of notification codes to be re-used
 var UPLOAD_COMPLETE = 1;
 var UPLOAD_ERROR = -1;
@@ -30,9 +48,7 @@ var RECORD_NOT_FOUND = -2.1;
 var NOT_IN_SYNC = -3;
 
 var COMPLEX_ERROR = -500;
-
-// used to generate a hash of a file
-var crypto = require('crypto');
+// ---------------------------------------------------
 
 
 function handleError(err, context) {
@@ -385,22 +401,85 @@ function logConfig(config) {
 }
 
 function watchFolders(config) {
-    if (!config) {
-        console.error('Invalid configuration. Application exiting.'.red);
-        process.exit(1);
-    }
-    logConfig(config);
-
     var watchedFolders = Object.keys(config.roots);
     var ignoreDir = new RegExp("/" + syncDir + "/");
     chokidar.watch(watchedFolders, {persistent: true, ignored: ignoreDir})
         .on('add', onAdd)
         .on('change', onChange)
         .on('error', function (error) {
-            console.error('Error watching files: %s'.red, error)
+            console.error('Error watching files: %s'.red, error);
         });
     // TODO : clear up old hash files when files removed..
     // .on('unlink', function(path) {console.log('File', path, 'has been removed');})
 }
 
-watchFolders(config);
+function configValid(config) {
+    if (!config) {
+        console.error('Invalid configuration. Application exiting.'.red);
+        process.exit(1);
+        return false;
+    }
+    logConfig(config);
+    return true;
+}
+
+// for each root create the folders because we are lazy ppl
+function setupFolders(config, callback) {
+    var dirsExpected = 0,
+        dirsCreated = 0;
+
+    dirsExpected = Object.keys(config.roots).length * Object.keys(config.folders).length;
+
+    function dirError(err) {
+        if(err) console.log(err);
+        dirsCreated++;
+        if(dirsCreated >= dirsExpected) {
+            // we are done creating all the folders
+            callback();
+        }
+    }
+
+    // for each root create our dirs
+    for(var r in config.roots) {
+        //console.log('found r: '+r);
+        for(var f in config.folders) {
+            var newDir = path.join(r, f);
+            fs.ensureDir(newDir, dirError);
+        }
+    }
+}
+
+/*
+ * Creates a file
+ */
+function testDownload(config) {
+    console.log('Lets run a test'.blue);
+    // this should be an out of the box file available on Dublin, Eureka, Fuji...
+    var testFile = path.join('script_includes', 'JSUtil.js'),
+        testFilePath = '';
+
+    function fileCreated(err) {
+        if(err) console.log(err);
+        console.log('created test file!');
+        // hard code stats obj.
+        onAdd(testFilePath, {size: 0});
+    }
+    for(var r in config.roots) {
+        testFilePath = path.join(r, testFile);
+        console.log('Creating test file: '+testFilePath);
+        fs.ensureFile(testFilePath, fileCreated);
+        break;
+    }
+
+}
+
+configValid(config);
+
+if(argv.setup) {
+    setupFolders(config, function() {});
+} else if(argv.test) {
+    console.log('TEST MODE ACTIVATED'.green);
+    testDownload(config);
+} else {
+    watchFolders(config);
+}

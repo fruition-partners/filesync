@@ -1,6 +1,4 @@
 // Copyright (c) 2013 Fruition Partners, Inc.
-'use strict';
-
 
 var assert = require('assert-plus');
 require('colors');

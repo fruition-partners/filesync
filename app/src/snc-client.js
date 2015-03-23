@@ -1,5 +1,4 @@
 // Copyright (c) 2013 Fruition Partners, Inc.
-'use strict';
 
 var http = require('http');
 var restify = require('restify');
@@ -120,7 +119,7 @@ function sncClient(config) {
             getRecords: getRecords,
             insert: insert,
             update: update
-        }
+        };
     }
 
     return {
