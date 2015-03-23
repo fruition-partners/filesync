@@ -170,7 +170,7 @@ Considering ServiceNow does not handle merge conflicts at all, this is a major g
 
 
 Nice to haves
-- [ ] auto create folder structure for user
+- [x] auto create folder structure for user (```./node-darwin app/src --setup```)
 - [ ] add record browser to automatically download chosen files.
 - [ ] option to re-download all files from instance
 - [ ] auto download records created or updated by a given user ID
@@ -198,6 +198,11 @@ by automatically forking the project and prompting to send a pull request too.
 
 
 ## Changes
+
+* 2015-03-23
+ * Add basic test support to ensure setup is upgrade safe (```./node-darwin app/src --test```)
+ * Add jshint for cleaner scripting
+ * Add module to parse command line args easily
 
 * 2015-03-18
  * Fixed some trivial stuff regarding connection handling
