@@ -163,10 +163,12 @@ Considering ServiceNow does not handle merge conflicts at all, this is a major g
 - [ ] when an update conflict has been detected write out the remote file and launch a diff app (command line "diff" or mac OS X Code "FileMerge" via "`opendiff <left> <right>`") for the user to help resolve the differences
 - [ ] allow upload override of server record if the user has made a merge of remote and local data
 
-- [ ] upgrade node binaries to latest versions (currently version "v0.8.25")
-- [ ] upgrade 3rd party node_modules (restify is at "2.6.0" but should be "3.0.1" which needs "node": ">=0.10" run `npm outdated` for details)
+- [ ] upgrade node binaries to latest versions (currently version "v0.8.25". version here http://nodejs.org/dist/v0.10.37/ needs testing with restify)
+- [x] upgrade 3rd party node_modules (except restify)
+- [ ] upgrade restify or find alternative that works better (restify is at "2.6.0" but should be "3.0.1" which needs "node": ">=0.10" run `npm outdated` for details)
 - [x] use standard npm package.json setup to specify 3rd part node_modules
 - [ ] ignore hidden files better (Eg. ".DS_Store", ".jshintrc")
+
 
 
 Nice to haves
@@ -198,6 +200,10 @@ by automatically forking the project and prompting to send a pull request too.
 
 
 ## Changes
+
+* 2015-03-26
+ * Upgraded node_modules (```npm update```) to latest version other than restify (which was throwing too many errors on current and future node versions node@0.10.37 and node@0.12.0 with restify@3.0.1. restify@2.6.0 is stable)
+
 
 * 2015-03-23
  * Add basic test support to ensure setup is upgrade safe (```./node-darwin app/src --test```)
