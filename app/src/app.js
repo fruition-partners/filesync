@@ -56,7 +56,6 @@ function handleError(err, context) {
     if (context) {
         console.error('  context:'.red, context);
     }
-    notifyUser(COMPLEX_ERROR);
 }
 function _getHomeDir() {
     // should also be windows friendly but not tested
@@ -131,7 +130,10 @@ function receive(file, map) {
     var db = {table: map.table, field: map.field, query: map.key + '=' + map.keyValue};
 
     snc.table(db.table).getRecords(db.query, function (err, obj) {
-        if (err) return handleError(err, db);
+        if (err) {
+            notifyUser(COMPLEX_ERROR);
+            return handleError(err, db);
+        }
         if (obj.records.length === 0) {
             notifyUser(RECORD_NOT_FOUND, {table: map.table, file: map.keyValue, field: map.field});
             return console.log('No records found:'.yellow, db);
@@ -246,7 +248,10 @@ function send(file, map) {
     var db = {table: map.table, field: map.field, query: map.key + '=' + map.keyValue};
 
     fs.readFile(file, 'utf8', function (err, data) {
-        if (err) return handleError(err, {file: file});
+        if (err) {
+            notifyUser(COMPLEX_ERROR);
+            return handleError(err, {file: file});
+        }
 
         var body = {};
         body[db.field] = data;
@@ -351,7 +356,10 @@ function instanceInSync(snc, db, map, file, newData, callback) {
     console.log('Comparing remote version with previous local version...');
     // TODO : duplicate code here
     snc.table(db.table).getRecords(db.query, function (err, obj) {
-        if (err) return handleError(err, db);
+        if (err) {
+            notifyUser(COMPLEX_ERROR);
+            return handleError(err, db);
+        }
         if (obj.records.length === 0) {
             notifyUser(RECORD_NOT_FOUND, {table: map.table, file: map.keyValue, field: map.field});
             return console.log('No records found:'.yellow, db);
