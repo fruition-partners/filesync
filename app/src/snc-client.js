@@ -15,8 +15,14 @@ function sncClient(config) {
     // DP@SNC change : support testing on localhost but default to https
     var protocol = config.protocol ? config.protocol : 'https';
 
-    var client = restify.createJsonClient({url: protocol + '://' + config.host});
-    client.basicAuth(user, pass);
+    // we may have some connection issues with TCP resets (ECONNRESET). Lets debug them further.
+    try {
+        var client = restify.createJsonClient({url: protocol + '://' + config.host});
+        client.basicAuth(user, pass);
+    } catch(err) {
+        console.log('Some error happend');
+        console.dir(err);
+    }
 
     function table(tableName) {
 
@@ -55,7 +61,11 @@ function sncClient(config) {
                 return err;
             }
             if (obj.error) {
-                return new Error(obj.error);
+                if (debug) console.log('ERROR found in obj.error : ' + obj.error);
+                // DP TODO : Investigate: Error: json object is null
+                //return new Error(obj.error);
+                // this is actually not an error! It's just that the server didn't return anything to us
+                return null;
             }
             if (!obj.records) {
                 return new Error(util.format('Response missing "records" key: %j\nCheck server logs.', obj));
@@ -65,10 +75,12 @@ function sncClient(config) {
 
         function logResponse(err, req, res, obj, request) {
             var resCode = res ? res.statusCode : 'no response';
+            console.log('-------------------------------------------------------');
             console.log('HTTP ' + req.method + ':', client.url.host, req.path,
                 '\nrequest:', request.postObj || '',
                 '\nresponse:', util.inspect({statusCode: resCode, body: obj}, true, 10)
             );
+            console.log('-------------------------------------------------------');
         }
 
         function send(request) {
@@ -90,11 +102,19 @@ function sncClient(config) {
                 request.callback(err, obj);
             }
 
-            if (request.postObj) {
-                return client.post(path, request.postObj, handleResponse);
+            // we may have some connection issues with TCP resets (ECONNRESET). Lets debug them further.
+            try {
+                if (request.postObj) {
+                    client.post(path, request.postObj, handleResponse);
+                } else {
+                    client.get(path, handleResponse);
+                }
+            } catch(err) {
+                console.log('Some connection error happend...');
+                console.dir(err);
+                // fail hard!
+                process.exit(1);
             }
-
-            return client.get(path, handleResponse);
         }
 
         function getRecords(query, callback) {
@@ -106,7 +126,8 @@ function sncClient(config) {
         }
 
         function insert(obj, callback) {
-            send({table: tableName, action: 'insert', postObj: obj, callback: callback});
+            console.log('DP TODO : insert not yet tested nor supported!');
+            //send({table: tableName, action: 'insert', postObj: obj, callback: callback});
         }
 
         function update(query, obj, callback) {

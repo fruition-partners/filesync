@@ -203,7 +203,7 @@ by automatically forking the project and prompting to send a pull request too.
 
 * 2015-03-26
  * Upgraded node_modules (```npm update```) to latest version other than restify (which was throwing too many errors on current and future node versions node@0.10.37 and node@0.12.0 with restify@3.0.1. restify@2.6.0 is stable)
-
+ * Add more connection error support
 
 * 2015-03-23
  * Add basic test support to ensure setup is upgrade safe (```./node-darwin app/src --test```)
