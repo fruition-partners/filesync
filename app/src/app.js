@@ -19,6 +19,10 @@ var crypto = require('crypto');
 // custom code
 var config = require('./config');
 var sncClient = require('./snc-client');
+var notify = require('./notify');
+var notifyUser = null;
+// list of supported notification messages defined in notify.js
+var msgCodes = null;
 
 // ---------------------------------------------------
 
@@ -32,24 +36,23 @@ var filesInprogress = {};
 var isMac = /^darwin/.test(process.platform);
 //var isWin = /^win/.test(process.platform);
 
-if(isMac) {
-    var notify = require('osx-notifier');
+
+// entry point
+function init() {
+    configValid(config);
+    var notifyObj = notify(config);
+    notifyUser = notifyObj.msg;
+    msgCodes = notifyObj.codes;
+
+    if(argv.setup) {
+        setupFolders(config, function() {});
+    } else if(argv.test) {
+        console.log('TEST MODE ACTIVATED'.green);
+        testDownload(config);
+    } else {
+        watchFolders(config);
+    }
 }
-
-
-// ---------------------------------------------------
-// a bunch of notification codes to be re-used
-var UPLOAD_COMPLETE = 1;
-var UPLOAD_ERROR = -1;
-var RECEIVED_FILE = 2;
-var RECEIVED_FILE_ERROR = -2;
-var RECEIVED_FILE_0_BYTES = -20;
-var RECORD_NOT_FOUND = -2.1;
-var NOT_IN_SYNC = -3;
-
-var COMPLEX_ERROR = -500;
-// ---------------------------------------------------
-
 
 function handleError(err, context) {
     console.error('Error:'.red, err);
@@ -131,17 +134,17 @@ function receive(file, map) {
 
     snc.table(db.table).getRecords(db.query, function (err, obj) {
         if (err) {
-            notifyUser(COMPLEX_ERROR);
+            notifyUser(msgCodes.COMPLEX_ERROR);
             return handleError(err, db);
         }
         if (obj.records.length === 0) {
-            notifyUser(RECORD_NOT_FOUND, {table: map.table, file: map.keyValue, field: map.field});
+            notifyUser(msgCodes.RECORD_NOT_FOUND, {table: map.table, file: map.keyValue, field: map.field});
             return console.log('No records found:'.yellow, db);
         }
 
         if(obj.records[0][db.field].length < 1) {
             console.log('**WARNING : this record is 0 bytes');
-            notifyUser(RECEIVED_FILE_0_BYTES, {table: map.table, file: map.keyValue, field: map.field});
+            notifyUser(msgCodes.RECEIVED_FILE_0_BYTES, {table: map.table, file: map.keyValue, field: map.field});
         }
         console.log('Received:'.green, db);
 
@@ -150,97 +153,16 @@ function receive(file, map) {
         return fs.writeFile(file, obj.records[0][db.field], function (err) {
             doneWritingFile(file);
             if (err) {
-                notifyUser(RECEIVED_FILE_ERROR, {table: map.table, file: map.keyValue, field: map.field});
+                notifyUser(msgCodes.RECEIVED_FILE_ERROR, {table: map.table, file: map.keyValue, field: map.field});
                 return handleError(err, file);
             }
 
             // write out hash for collision detection
             saveHash(map.root, file, obj.records[0][db.field]);
-            notifyUser(RECEIVED_FILE, {table: map.table, file: map.keyValue, field: map.field});
+            notifyUser(msgCodes.RECEIVED_FILE, {table: map.table, file: map.keyValue, field: map.field});
             return console.log('Saved:'.green, {file: file});
         });
     });
-}
-
-// notifies the user in a non-command line kind of way
-// currently supports OSX notifactions only...
-// (consider using https://github.com/mikaelbr/node-notifier or https://github.com/dylang/grunt-notify)
-// TODO : notifications sent at the same time may not be displayed to the user in the normal fashion (os X)
-//        but are being received and exist in the notification center. Consider adding delay or merging notifications.
-function notifyUser(code, args) {
-
-    if (config.debug) {
-        console.log('notifying with code: '+code);
-    }
-
-    var notifyArgs = {};
-    // default response
-    notifyArgs = {
-        type: 'info',
-        title: 'Unknown Notification',
-        subtitle: 'WTF?',
-        message: 'Please look into notifyUser() for code: ' + code
-    };
-
-    if(code == UPLOAD_COMPLETE) {
-        notifyArgs = {
-            type: 'pass',
-            title: 'Upload Complete',
-            subtitle: args.file,
-            message: 'Took no time at all!'
-        };
-    } else if(code == UPLOAD_ERROR) {
-
-    } else if(code == RECEIVED_FILE) {
-        notifyArgs = {
-            type: 'pass',
-            title: 'Download Complete',
-            subtitle: '',
-            message: args.file + ' (' + args.table +':'+ args.field + ')//'
-        };
-    } else if(code == RECEIVED_FILE_ERROR) {
-        notifyArgs = {
-            type: 'fail',
-            title: 'Failed to Download file',
-            subtitle: '',
-            message: args.file + ' (' + args.table +':'+ args.field + ')'
-        };
-    } else if(code == RECORD_NOT_FOUND) {
-        notifyArgs = {
-            type: 'fail',
-            title: 'Could not find record',
-            subtitle: '',
-            message: args.file + ' (' + args.table +':'+ args.field + ')'
-        };
-    } else if(code == NOT_IN_SYNC) {
-        notifyArgs = {
-            type: 'fail',
-            title: 'File not in sync!',
-            subtitle: 'Please update your local version first!',
-            message: args.file + ' (' + args.table +':'+ args.field + ')'
-        };
-    } else if (code == RECEIVED_FILE_0_BYTES) {
-        notifyArgs = {
-            type: 'info',
-            title: 'Record field has no data!',
-            subtitle: 'Please add some content to your new file.',
-            message: args.file + ' (' + args.table +':'+ args.field + ')'
-        };
-    } else if (code == COMPLEX_ERROR) {
-        notifyArgs = {
-            type: 'fail',
-            title: 'Connection Error',
-            subtitle: '',
-            message: 'Please see command line output for details.'
-        };
-    }
-
-    if(isMac) {
-        notify(notifyArgs);
-    } else {
-        // windows support?
-        // linux support?
-    }
 }
 
 function send(file, map) {
@@ -249,7 +171,7 @@ function send(file, map) {
 
     fs.readFile(file, 'utf8', function (err, data) {
         if (err) {
-            notifyUser(COMPLEX_ERROR);
+            notifyUser(msgCodes.COMPLEX_ERROR);
             return handleError(err, {file: file});
         }
 
@@ -260,7 +182,7 @@ function send(file, map) {
         instanceInSync(snc, db, map, file, data, function (err, obj) {
 
             if(!obj.inSync) {
-                notifyUser(NOT_IN_SYNC, {table: map.table, file: map.keyValue, field: map.field});
+                notifyUser(msgCodes.NOT_IN_SYNC, {table: map.table, file: map.keyValue, field: map.field});
                 return;
             }
             if(obj.noPushNeeded) {
@@ -270,13 +192,13 @@ function send(file, map) {
 
             return snc.table(db.table).update(db.query, body, function (err, obj) {
                 if (err) {
-                    notifyUser(UPLOAD_ERROR, {file: map.keyValue});
+                    notifyUser(msgCodes.UPLOAD_ERROR, {file: map.keyValue});
                     return handleError(err, db);
                 }
 
                 // update hash for collision detection
                 saveHash(map.root, file, data);
-                notifyUser(UPLOAD_COMPLETE, {file: map.keyValue});
+                notifyUser(msgCodes.UPLOAD_COMPLETE, {file: map.keyValue});
                 return console.log('Updated:'.green, db);
             });
         });
@@ -357,11 +279,11 @@ function instanceInSync(snc, db, map, file, newData, callback) {
     // TODO : duplicate code here
     snc.table(db.table).getRecords(db.query, function (err, obj) {
         if (err) {
-            notifyUser(COMPLEX_ERROR);
+            notifyUser(msgCodes.COMPLEX_ERROR);
             return handleError(err, db);
         }
         if (obj.records.length === 0) {
-            notifyUser(RECORD_NOT_FOUND, {table: map.table, file: map.keyValue, field: map.field});
+            notifyUser(msgCodes.RECORD_NOT_FOUND, {table: map.table, file: map.keyValue, field: map.field});
             return console.log('No records found:'.yellow, db);
         }
 
@@ -481,13 +403,4 @@ function testDownload(config) {
 
 }
 
-configValid(config);
-
-if(argv.setup) {
-    setupFolders(config, function() {});
-} else if(argv.test) {
-    console.log('TEST MODE ACTIVATED'.green);
-    testDownload(config);
-} else {
-    watchFolders(config);
-}
+init();
