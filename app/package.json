@@ -5,7 +5,7 @@
   "main": "src/app.js",
   "dependencies": {
     "assert-plus": "^0.1.5",
-    "chokidar": "^0.6.3",
+    "chokidar": "1.0.0-rc4",
     "colors": "^0.6.2",
     "fs-extra": "^0.16.5",
     "minimist": "^1.1.1",
