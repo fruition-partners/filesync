@@ -89,6 +89,13 @@
             "fields": {
                 "xhtml": "programmatic_content"
             }
+        },
+        "email_templates": {
+            "table": "sysevent_email_template",
+            "key": "name",
+            "fields": {
+                "html": "message_html"
+            }
         }
     },
     "debug": false
