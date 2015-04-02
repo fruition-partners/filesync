@@ -18,6 +18,7 @@ var crypto = require('crypto');
 // ---------------------------------------------------
 // custom code
 var config = require('./config');
+var upgradeNeeded = require('./upgrade');
 var sncClient = require('./snc-client');
 var notify = require('./notify');
 var notifyUser = null;
@@ -26,9 +27,11 @@ var msgCodes = null;
 
 // ---------------------------------------------------
 
+// true when all existing files should be re-downloaded
+var resyncFiles = false;
 
 // a directory to store hash information used to detect remote changes to records before trying to overwrite them
-var syncDir = '.sync';
+var syncDir = '.sync_data';
 
 // store a collection of files being written out so that we can ignore them from our watch script
 var filesInprogress = {};
@@ -39,18 +42,49 @@ var isMac = /^darwin/.test(process.platform);
 
 // entry point
 function init() {
+
+    if(argv.help) {
+        displayHelp();
+        process.exit(1);
+        return;
+    }
+
     configValid(config);
     var notifyObj = notify(config);
     notifyUser = notifyObj.msg;
     msgCodes = notifyObj.codes;
 
-    if(argv.setup) {
-        setupFolders(config, function() {});
-    } else if(argv.test) {
-        console.log('TEST MODE ACTIVATED'.green);
-        testDownload(config);
-    } else {
-        watchFolders(config);
+    function start(upgradeBlocks) {
+        if(upgradeBlocks) {
+            console.error('Upgrade is needed. Please check the Readme/change log online.'.red);
+            process.exit(1);
+        }
+
+        if(argv.setup) {
+            setupFolders(config, function() {});
+        } else if(argv.test) {
+            console.log('TEST MODE ACTIVATED'.green);
+            testDownload(config);
+        } else if(argv.resync) {
+            resyncFiles = true;
+            watchFolders(config);
+        } else {
+            watchFolders(config);
+        }
+    }
+
+    upgradeNeeded(config, start);
+}
+
+function displayHelp() {
+    var msgs = ['--help     (shows this message)',
+                '--setup    (will create your folders for you)',
+               '--test     (will run a download test for a known file on the instance)',
+               '--resync   (will re-download all the files to get the latest server version)'];
+    console.log('Help'.green);
+    console.log('List of options:');
+    for(var i in msgs) {
+        console.log(' ' + msgs[i]);
     }
 }
 
@@ -210,6 +244,18 @@ function onAdd(file, stats) {
     if (!map) return;
 
     if (stats.size > 0) {
+
+        if(resyncFiles) {
+            console.log('Resync file: '+file);
+            fs.writeFile(file, '', function (err) {
+                if (err) {
+
+                    console.log('could not reset file to 0 bytes'.red);
+                    return;
+                }
+                //console.log('wrote file: ' + file);
+            });
+        }
         // these files can be ignored (we only process empty files)
         return;
     }
@@ -249,13 +295,17 @@ function getHashFileLocation(rootDir, file) {
 }
 function saveHash(rootDir, file, data) {
     if (config.debug) {
-        console.log('Saving hash for file: '+file);
+        console.log('Saving meta/hash data for file: '+file);
     }
     var hash = makeHash(data);
-    var hashFile = getHashFileLocation(rootDir, file);
-    fs.outputFile(hashFile, hash, function (err) {
+    // todo : save more useful meta data.
+    var metaData = {syncHash: hash};
+
+    var dataFile = getHashFileLocation(rootDir, file);
+    var outputString = JSON.stringify(metaData);
+    fs.outputFile(dataFile, outputString, function (err) {
         if (err) {
-           console.log('Could not write out hash file'.red, hashFile);
+           console.log('Could not write out meta file'.red, hashFile);
         }
     });
 }
@@ -264,9 +314,11 @@ function getLocalHash(rootDir, file) {
     var fContents = '';
     try {
         fContents = fs.readFileSync(hashFile, 'utf8');
+        var metaObj = JSON.parse(fContents);
+        fContents = metaObj.syncHash;
     } catch (err) {
         // don't care.
-        console.log('--------- hash file not yet existing ---------------');
+        console.log('--------- data file not yet existing ---------------');
     }
     return fContents;
 }
