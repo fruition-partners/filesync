@@ -1,4 +1,3 @@
-
 var path = require('path');
 var fs = require('fs-extra');
 
@@ -16,7 +15,7 @@ function syncDirWrong(config) {
 
         var oldDir = path.join(r, '.sync');
         //console.log('Checking for old dir: ' + oldDir);
-        if(fs.existsSync(oldDir)) {
+        if (fs.existsSync(oldDir)) {
             return true;
         }
     }

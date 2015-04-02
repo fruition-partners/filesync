@@ -5,6 +5,9 @@ var restify = require('restify');
 var url = require('url');
 var util = require('util');
 
+// testing
+// https.globalAgent.options.secureProtocol = 'SSLv3_method';
+
 function sncClient(config) {
     var debug = config.debug;
     var auth = new Buffer(config.auth, 'base64').toString(),
@@ -17,9 +20,11 @@ function sncClient(config) {
 
     // we may have some connection issues with TCP resets (ECONNRESET). Lets debug them further.
     try {
-        var client = restify.createJsonClient({url: protocol + '://' + config.host});
+        var client = restify.createJsonClient({
+            url: protocol + '://' + config.host
+        });
         client.basicAuth(user, pass);
-    } catch(err) {
+    } catch (err) {
         console.log('Some error happend');
         console.dir(err);
     }
@@ -78,7 +83,10 @@ function sncClient(config) {
             console.log('-------------------------------------------------------');
             console.log('HTTP ' + req.method + ':', client.url.host, req.path,
                 '\nrequest:', request.postObj || '',
-                '\nresponse:', util.inspect({statusCode: resCode, body: obj}, true, 10)
+                '\nresponse:', util.inspect({
+                    statusCode: resCode,
+                    body: obj
+                }, true, 10)
             );
             console.log('-------------------------------------------------------');
         }
@@ -109,7 +117,7 @@ function sncClient(config) {
                 } else {
                     client.get(path, handleResponse);
                 }
-            } catch(err) {
+            } catch (err) {
                 console.log('Some connection error happend...');
                 console.dir(err);
                 // fail hard!
@@ -118,11 +126,23 @@ function sncClient(config) {
         }
 
         function getRecords(query, callback) {
-            send({table: tableName, action: 'getRecords', parmName: 'query', parmValue: query, callback: callback});
+            send({
+                table: tableName,
+                action: 'getRecords',
+                parmName: 'query',
+                parmValue: query,
+                callback: callback
+            });
         }
 
         function get(id, callback) {
-            send({table: tableName, action: 'get', parmName: 'sys_id', parmValue: id, callback: callback});
+            send({
+                table: tableName,
+                action: 'get',
+                parmName: 'sys_id',
+                parmValue: id,
+                callback: callback
+            });
         }
 
         function insert(obj, callback) {
@@ -131,8 +151,14 @@ function sncClient(config) {
         }
 
         function update(query, obj, callback) {
-            send({table: tableName, action: 'update', parmName: 'query', parmValue: query, postObj: obj,
-                callback: callback});
+            send({
+                table: tableName,
+                action: 'update',
+                parmName: 'query',
+                parmValue: query,
+                postObj: obj,
+                callback: callback
+            });
         }
 
         return {

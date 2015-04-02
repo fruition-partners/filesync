@@ -16,7 +16,7 @@ var CONFIG_FILE = '';
 
 // OS friendly solution to path
 function homeConfigPath(type) {
-  return path.join(_getHomeDir(), '.filesync', 'app.config.json');
+    return path.join(_getHomeDir(), '.filesync', 'app.config.json');
 }
 
 function saveConfig(config) {
@@ -45,7 +45,7 @@ function _getHomeDir() {
 }
 
 function getConfig() {
-    if(fs.existsSync(PRIVATE_CONFIG_FILE)) {
+    if (fs.existsSync(PRIVATE_CONFIG_FILE)) {
         CONFIG_FILE = PRIVATE_CONFIG_FILE;
     } else {
         CONFIG_FILE = DEFAULT_CONFIG_FILE;
