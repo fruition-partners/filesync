@@ -7,7 +7,7 @@
 var isMac = /^darwin/.test(process.platform);
 //var isWin = /^win/.test(process.platform);
 
-if(isMac) {
+if (isMac) {
     var notify = require('osx-notifier');
 }
 
@@ -34,7 +34,7 @@ function notifyUser(config) {
     function msg(code, args) {
 
         if (config.debug) {
-            console.log('notifying with code: '+code);
+            console.log('notifying with code: ' + code);
         }
 
         var notifyArgs = {};
@@ -46,49 +46,49 @@ function notifyUser(config) {
             message: 'Please look into notifyUser() for code: ' + code
         };
 
-        if(code == codes.UPLOAD_COMPLETE) {
+        if (code == codes.UPLOAD_COMPLETE) {
             notifyArgs = {
                 type: 'pass',
                 title: 'Upload Complete',
                 subtitle: args.file,
                 message: 'Took no time at all!'
             };
-        } else if(code == codes.UPLOAD_ERROR) {
+        } else if (code == codes.UPLOAD_ERROR) {
 
-        } else if(code == codes.RECEIVED_FILE) {
+        } else if (code == codes.RECEIVED_FILE) {
             notifyArgs = {
                 type: 'pass',
                 title: 'Download Complete',
                 subtitle: '',
-                message: args.file + ' (' + args.table +':'+ args.field + ')//'
+                message: args.file + ' (' + args.table + ':' + args.field + ')//'
             };
-        } else if(code == codes.RECEIVED_FILE_ERROR) {
+        } else if (code == codes.RECEIVED_FILE_ERROR) {
             notifyArgs = {
                 type: 'fail',
                 title: 'Failed to Download file',
                 subtitle: '',
-                message: args.file + ' (' + args.table +':'+ args.field + ')'
+                message: args.file + ' (' + args.table + ':' + args.field + ')'
             };
-        } else if(code == codes.RECORD_NOT_FOUND) {
+        } else if (code == codes.RECORD_NOT_FOUND) {
             notifyArgs = {
                 type: 'fail',
                 title: 'Could not find record',
                 subtitle: '',
-                message: args.file + ' (' + args.table +':'+ args.field + ')'
+                message: args.file + ' (' + args.table + ':' + args.field + ')'
             };
-        } else if(code == codes.NOT_IN_SYNC) {
+        } else if (code == codes.NOT_IN_SYNC) {
             notifyArgs = {
                 type: 'fail',
                 title: 'File not in sync!',
                 subtitle: 'Please update your local version first!',
-                message: args.file + ' (' + args.table +':'+ args.field + ')'
+                message: args.file + ' (' + args.table + ':' + args.field + ')'
             };
         } else if (code == codes.RECEIVED_FILE_0_BYTES) {
             notifyArgs = {
                 type: 'info',
                 title: 'Record field has no data!',
                 subtitle: 'Please add some content to your new file.',
-                message: args.file + ' (' + args.table +':'+ args.field + ')'
+                message: args.file + ' (' + args.table + ':' + args.field + ')'
             };
         } else if (code == codes.COMPLEX_ERROR) {
             notifyArgs = {
@@ -99,7 +99,7 @@ function notifyUser(config) {
             };
         }
 
-        if(isMac) {
+        if (isMac) {
             notify(notifyArgs);
         } else {
             // windows support?
