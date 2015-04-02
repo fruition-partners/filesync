@@ -78,10 +78,4 @@ function getConfig() {
     return config;
 }
 
-try {
-    module.exports = getConfig();
-
-} catch (e) {
-    console.error('Configuration error:'.red, e.message);
-    module.exports = null;
-}
+module.exports = getConfig;

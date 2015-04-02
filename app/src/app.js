@@ -49,7 +49,16 @@ function init() {
         return;
     }
 
-    configValid(config);
+    // get config
+    try {
+        config = config();
+        configValid(config);
+    } catch (e) {
+        console.error('Configuration error:'.red, e.message);
+        process.exit(1);
+    }
+
+    // setup notify
     var notifyObj = notify(config);
     notifyUser = notifyObj.msg;
     msgCodes = notifyObj.codes;
