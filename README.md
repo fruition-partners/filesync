@@ -2,15 +2,15 @@
 
 ## Intro
 
-This is a fork of the fruition-parteners filesync repo (looks abandoned). This repository aims to add support for current versions of ServiceNow, clean up code managment (to allow more contribution!) and provide further solutions to common "editing in ServiceNow environment" issues (eg, conflict saves). See the **Road Map** below for more info. **Contributors wanted!**
+This is a **maintained** fork of the fruition-parteners filesync repo. This repository adds support for current versions of ServiceNow, cleans up code managment (to allow more contribution!) and provides further solutions to common "editing in ServiceNow environment" issues (eg, conflict saves). See the **Road Map** below for more info. **Contributors wanted!**
 
 
 ## Overview
 
 FileSync synchronizes local file changes to mapped records in ServiceNow instances.
 
-This enables ServiceNow developers to use their favorite integrated development environments (IDEs) and text editors
-like WebStorm, Sublime and Brackets for editing JavaScript, HTML, Jelly and other code - without wasting time and interrupting
+This enables ServiceNow developers to use their favourite integrated development environments (IDEs) and text editors
+like WebStorm, Sublime and [Brackets](http://brackets.io/) for editing JavaScript, HTML, Jelly and other code - without wasting time and interrupting
 development workflow copying and pasting code into a browser.
 
 When a file changes within a configured root (project) folder, the parent folder and file name are used to identify the
@@ -19,6 +19,8 @@ table and record to be updated.
 Adding an empty file, or clearing and saving an existing file, refreshes the local file with the latest instance
 version, syncing *from* the instance *to* the local file. This is an easy way to populate your project folder with
 existing scripts related to your project.
+
+Conflict management also detects if the server version has changed before trying to upload local changes (that may be based on an outdated version).
 
 ## Quick Start
 
@@ -174,7 +176,7 @@ Considering ServiceNow does not handle merge conflicts at all, this is a major g
 Nice to haves
 - [x] auto create folder structure for user (```./node-darwin app/src --setup```)
 - [ ] add record browser to automatically download chosen files.
-- [ ] option to re-download all files from instance
+- [x] option to re-download all files from instance
 - [ ] auto download records created or updated by a given user ID
 - [ ] notifications play sounds, show more info, are clickable etc.
 - [ ] offline support? (keep track of files that are queued to upload when the connection is available again and retry).. maybe not. This could be dangerous if records get updated without someone to test them. Potentially workable if the last queued file is less than 3 minutes ago to cater for flaky mobile/roaming connections.
@@ -201,30 +203,7 @@ by automatically forking the project and prompting to send a pull request too.
 
 ## Changes
 
-* 2015-03-26
- * Upgraded node_modules (```npm update```) to latest version other than restify (which was throwing too many errors on current and future node versions node@0.10.37 and node@0.12.0 with restify@3.0.1. restify@2.6.0 is stable)
- * Add more connection error support
-
-* 2015-03-23
- * Add basic test support to ensure setup is upgrade safe (```./node-darwin app/src --test```)
- * Add jshint for cleaner scripting
- * Add module to parse command line args easily
-
-* 2015-03-18
- * Fixed some trivial stuff regarding connection handling
-
-* 2015-03-16
- * Added conflict management! Now it's impossible to overwrite server records that would result in data loss!
-
-* 2015-03-14
- * Update readme and add road map. Encourage contribution!
- * Refactored code setup and allow config file to be outside of repo
- * Enable non 'https' instance connections
- * Added notification support (OS X)
-
-* 2015-03-10
- * Added support for Eureka+ versions.
- * Initial clone and file re-structure
+See CHANGES.md
 
 
 ## Architecture
