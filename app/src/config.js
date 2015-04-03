@@ -7,20 +7,12 @@ var path = require('path');
 var restify = require('restify');
 var util = require('util');
 
-var DEFAULT_CONFIG_FILE = '../app.config.json';
-// users can specify a file outside of the repo
-var PRIVATE_CONFIG_FILE = homeConfigPath();
-// the location of the config file (populated based on if PRIVATE_CONFIG_FILE exists or not)
-var CONFIG_FILE = '';
-
-
-// OS friendly solution to path
-function homeConfigPath(type) {
-    return path.join(_getHomeDir(), '.filesync', 'app.config.json');
-}
+// the location of the config file (populated dynamically)
+var config_file = '';
+var DEFAULT_CONFIG_FILE = path.join('..', 'app.config.json');
 
 function saveConfig(config) {
-    fs.writeFile(path.join(__dirname, CONFIG_FILE), JSON.stringify(config, null, 4), function (err) {
+    fs.writeFile(path.join(__dirname, config_file), JSON.stringify(config, null, 4), function (err) {
         assert.ifError(err);
     });
 }
@@ -38,19 +30,8 @@ function validateRootFolder(folder) {
     assert.ok(fs.statSync(folder).isDirectory(), util.format('root folder: "%s" is not a directory.', folder));
 }
 
-function _getHomeDir() {
-    // should also be windows friendly but not tested
-    var ans = process.env[(process.platform == 'win32') ? 'USERPROFILE' : 'HOME'];
-    return ans;
-}
-
 function getConfig() {
-    if (fs.existsSync(PRIVATE_CONFIG_FILE)) {
-        CONFIG_FILE = PRIVATE_CONFIG_FILE;
-    } else {
-        CONFIG_FILE = DEFAULT_CONFIG_FILE;
-    }
-    var config = require(CONFIG_FILE);
+    var config = require(config_file);
     config.debug = config.debug || false;
 
     assert.object(config.roots, 'roots');
@@ -75,7 +56,72 @@ function getConfig() {
         console.log('Configuration: credentials encoded.'.green);
     }
 
+    configValid(config);
     return config;
 }
 
-module.exports = getConfig;
+
+// OS friendly solution to path
+function homeConfigPath() {
+    return path.join(_getHomeDir(), '.filesync', 'app.config.json');
+}
+
+function _getHomeDir() {
+    // should also be windows friendly but not tested
+    var ans = process.env[(process.platform == 'win32') ? 'USERPROFILE' : 'HOME'];
+    return ans;
+}
+
+function setConfigLocation(pathToConfig) {
+    var configFile = '';
+    // set by cmd line option
+    if (pathToConfig) {
+        // must exist or the (advanced) user has made a mistake that they can fix
+        configFile = pathToConfig;
+        // node can't include modules with tilda so we fix it
+        if (configFile.indexOf('~') >= 0) {
+            configFile = configFile.replace(/~/, _getHomeDir());
+        }
+    } else {
+        // is there a file outside of the repo?
+        configFile = homeConfigPath();
+        if (!fs.existsSync(configFile)) {
+            // no file in ~/.filesync/ so use the fallback as default
+            configFile = DEFAULT_CONFIG_FILE;
+        }
+    }
+    console.log('Using config file: ' + configFile.green);
+    config_file = configFile;
+    return configFile;
+}
+
+function configValid(config) {
+    if (!config) {
+        console.error('Invalid configuration. Application exiting.'.red);
+        process.exit(1);
+        return false;
+    }
+    logConfig(config);
+    return true;
+}
+
+
+function logConfig(config) {
+    console.log('');
+    console.log('Root folder sync to instance mapping:');
+    Object.keys(config.roots).forEach(function (root) {
+        console.log('-', root, '|', config.roots[root].host);
+    });
+    console.log('');
+    console.log('Root subfolder to table mapping:');
+    Object.keys(config.folders).forEach(function (folder) {
+        console.log('-', folder, '|', config.folders[folder].table);
+    });
+    console.log('');
+}
+
+
+module.exports = {
+    "getConfig": getConfig,
+    "setConfigLocation": setConfigLocation
+};

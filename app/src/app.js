@@ -51,8 +51,8 @@ function init() {
 
     // get config
     try {
-        config = config();
-        configValid(config);
+        config.setConfigLocation(argv.config);
+        config = config.getConfig();
     } catch (e) {
         console.error('Configuration error:'.red, e.message);
         process.exit(1);
@@ -87,6 +87,7 @@ function init() {
 
 function displayHelp() {
     var msgs = ['--help     (shows this message)',
+                '--config   (specify a path to your app.config.json file)',
                 '--setup    (will create your folders for you)',
                '--test     (will run a download test for a known file on the instance)',
                '--resync   (will re-download all the files to get the latest server version)'];
@@ -370,81 +371,70 @@ function saveHash(rootDir, file, data) {
 }
 
 function getLocalHash(rootDir, file) {
-        var hashFile = getHashFileLocation(rootDir, file);
-        var fContents = '';
-        try {
-            fContents = fs.readFileSync(hashFile, 'utf8');
-            var metaObj = JSON.parse(fContents);
-            fContents = metaObj.syncHash;
-        } catch (err) {
-            // don't care.
-            console.log('--------- data file not yet existing ---------------');
-        }
-        return fContents;
+    var hashFile = getHashFileLocation(rootDir, file);
+    var fContents = '';
+    try {
+        fContents = fs.readFileSync(hashFile, 'utf8');
+        var metaObj = JSON.parse(fContents);
+        fContents = metaObj.syncHash;
+    } catch (err) {
+        // don't care.
+        console.log('--------- data file not yet existing ---------------');
     }
-    /* This first gets the remote record and compares with the previous
-     * downloaded version. If the same then allow upload (ob.inSync is true).
-     *
-     */
-function instanceInSync(snc, db, map, file, newData, callback) {
-        console.log('Comparing remote version with previous local version...');
-        // TODO : duplicate code here
-        snc.table(db.table).getRecords(db.query, function (err, obj) {
-            if (err) {
-                notifyUser(msgCodes.COMPLEX_ERROR);
-                return handleError(err, db);
-            }
-            if (obj.records.length === 0) {
-                notifyUser(msgCodes.RECORD_NOT_FOUND, {
-                    table: map.table,
-                    file: map.keyValue,
-                    field: map.field
-                });
-                return console.log('No records found:'.yellow, db);
-            }
-
-            console.log('Received:'.green, db);
-            var remoteVersion = obj.records[0][db.field];
-            var remoteHash = makeHash(remoteVersion);
-            var previousLocalVersionHash = getLocalHash(map.root, file);
-            var newDataHash = makeHash(newData);
-
-            obj.inSync = false; // adding property. default to false
-            obj.noPushNeeded = false; // default to false to assume we must upload
-
-            // case 1. Records local and remote are the same
-            if (newDataHash == remoteHash) {
-                // handle the scenario where the remote version was changed to match the local version.
-                // when this happens update the local hash as there would be no collision here (and nothing to push!)
-                obj.inSync = true;
-                obj.noPushNeeded = true;
-                // update local hash.
-                saveHash(map.root, file, newData);
-
-                // case 2. the last local downloaded version matches the server version (stanard collision test scenario)
-            } else if (remoteHash == previousLocalVersionHash) {
-                obj.inSync = true;
-            }
-            // case 3, the remote version changed since we last downloaded it = not in sync
-            callback(err, obj);
-        });
-    }
-    // -----------------------------------------------------------
-
-
-function logConfig(config) {
-    console.log('');
-    console.log('Root folder sync to instance mapping:');
-    Object.keys(config.roots).forEach(function (root) {
-        console.log('-', root, '|', config.roots[root].host);
-    });
-    console.log('');
-    console.log('Root subfolder to table mapping:');
-    Object.keys(config.folders).forEach(function (folder) {
-        console.log('-', folder, '|', config.folders[folder].table);
-    });
-    console.log('');
+    return fContents;
 }
+
+
+
+/* This first gets the remote record and compares with the previous
+ * downloaded version. If the same then allow upload (ob.inSync is true).
+ */
+function instanceInSync(snc, db, map, file, newData, callback) {
+    console.log('Comparing remote version with previous local version...');
+    // TODO : duplicate code here
+    snc.table(db.table).getRecords(db.query, function (err, obj) {
+        if (err) {
+            notifyUser(msgCodes.COMPLEX_ERROR);
+            return handleError(err, db);
+        }
+        if (obj.records.length === 0) {
+            notifyUser(msgCodes.RECORD_NOT_FOUND, {
+                table: map.table,
+                file: map.keyValue,
+                field: map.field
+            });
+            return console.log('No records found:'.yellow, db);
+        }
+
+        console.log('Received:'.green, db);
+        var remoteVersion = obj.records[0][db.field];
+        var remoteHash = makeHash(remoteVersion);
+        var previousLocalVersionHash = getLocalHash(map.root, file);
+        var newDataHash = makeHash(newData);
+
+        obj.inSync = false; // adding property. default to false
+        obj.noPushNeeded = false; // default to false to assume we must upload
+
+        // case 1. Records local and remote are the same
+        if (newDataHash == remoteHash) {
+            // handle the scenario where the remote version was changed to match the local version.
+            // when this happens update the local hash as there would be no collision here (and nothing to push!)
+            obj.inSync = true;
+            obj.noPushNeeded = true;
+            // update local hash.
+            saveHash(map.root, file, newData);
+
+            // case 2. the last local downloaded version matches the server version (stanard collision test scenario)
+        } else if (remoteHash == previousLocalVersionHash) {
+            obj.inSync = true;
+        }
+        // case 3, the remote version changed since we last downloaded it = not in sync
+        callback(err, obj);
+    });
+}
+
+// -----------------------------------------------------------
+
 
 function watchFolders(config) {
     var watchedFolders = Object.keys(config.roots);
@@ -460,16 +450,6 @@ function watchFolders(config) {
         });
     // TODO : clear up old hash files when files removed..
     // .on('unlink', function(path) {console.log('File', path, 'has been removed');})
-}
-
-function configValid(config) {
-    if (!config) {
-        console.error('Invalid configuration. Application exiting.'.red);
-        process.exit(1);
-        return false;
-    }
-    logConfig(config);
-    return true;
 }
 
 // for each root create the folders because we are lazy ppl
