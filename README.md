@@ -203,7 +203,7 @@ by automatically forking the project and prompting to send a pull request too.
 
 ## Changes
 
-See CHANGES.md
+See [CHANGES.md](https://github.com/dynamicdan/filesync/blob/master/CHANGES.md)
 
 
 ## Architecture
