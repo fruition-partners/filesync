@@ -1,0 +1,90 @@
+{
+    "folders": {
+        "business_rules": {
+            "table": "sys_script",
+            "key": "name",
+            "fields": {
+                "js": "script"
+            }
+        },
+        "client_scripts": {
+            "table": "sys_script_client",
+            "key": "name",
+            "fields": {
+                "js": "script"
+            }
+        },
+        "processors": {
+            "table": "sys_processor",
+            "key": "name",
+            "fields": {
+                "js": "script"
+            }
+        },
+        "script_actions": {
+            "table": "sysevent_script_action",
+            "key": "name",
+            "fields": {
+                "js": "script"
+            }
+        },
+        "script_includes": {
+            "table": "sys_script_include",
+            "key": "name",
+            "fields": {
+                "js": "script"
+            }
+        },
+        "style_sheets": {
+            "table": "content_css",
+            "key": "name",
+            "fields": {
+                "css": "style"
+            }
+        },
+        "ui_actions": {
+            "table": "sys_ui_action",
+            "key": "name",
+            "fields": {
+                "js": "script"
+            }
+        },
+        "ui_macros": {
+            "table": "sys_ui_macro",
+            "key": "name",
+            "fields": {
+                "xhtml": "xml"
+            }
+        },
+        "ui_pages": {
+            "table": "sys_ui_page",
+            "key": "name",
+            "fields": {
+                "xhtml": "html",
+                "client.js": "client_script",
+                "server.js": "processing_script"
+            }
+        },
+        "ui_scripts": {
+            "table": "sys_ui_script",
+            "key": "name",
+            "fields": {
+                "js": "script"
+            }
+        },
+        "dynamic_content_blocks": {
+            "table": "content_block_programmatic",
+            "key": "name",
+            "fields": {
+                "xhtml": "programmatic_content"
+            }
+        },
+        "email_templates": {
+            "table": "sysevent_email_template",
+            "key": "name",
+            "fields": {
+                "html": "message_html"
+            }
+        }
+    }
+}

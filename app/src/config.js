@@ -11,6 +11,9 @@ var util = require('util');
 var config_file = '';
 var DEFAULT_CONFIG_FILE = path.join('..', 'app.config.json');
 
+// initial config for folders and record matchup (can be overridden in app.config.json)
+var CONFIG_RECORDS = path.join('..', 'src', 'records.config.json');
+
 function saveConfig(config) {
     fs.writeFile(path.join(__dirname, config_file), JSON.stringify(config, null, 4), function (err) {
         assert.ifError(err);
@@ -30,15 +33,28 @@ function validateRootFolder(folder) {
     assert.ok(fs.statSync(folder).isDirectory(), util.format('root folder: "%s" is not a directory.', folder));
 }
 
+function loadFolders(config) {
+    var confRecords = require(CONFIG_RECORDS);
+    // if ignoreDefaultFolders is set to true in the app.config.json file then we won't load our default folders
+    if(!config.ignoreDefaultFolders) {
+
+        // TODO : allow config.folders to override confRecords.folders via merge.
+
+        config.folders = confRecords.folders;
+    }
+}
+
 function getConfig() {
     var config = require(config_file);
     config.debug = config.debug || false;
 
     assert.object(config.roots, 'roots');
-    assert.object(config.folders, 'folders');
 
     var roots = Object.keys(config.roots);
     assert.ok(roots.length > 0, 'At least one root folder must be configured.');
+
+    loadFolders(config);
+    assert.object(config.folders, 'folders');
 
     var save = false;
     roots.forEach(function (root) {
