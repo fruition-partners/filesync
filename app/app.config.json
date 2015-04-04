@@ -1,5 +1,11 @@
 {
     "roots": {
+        "/Users/joe.developer/instance/records": {
+            "host": "some.special.instance.com:16001",
+            "protocol": "http",
+            "user": "admin",
+            "pass": "admin"
+        },
         "c:\\dev\\project_a": {
             "host": "demo001.service-now.com",
             "user": "admin",
@@ -10,6 +16,7 @@
             "auth": "YWRtaW46YWRtaW4="
         }
     },
+
     "ignoreDefaultFolders": false,
     "debug": false
 }
