@@ -1,4 +1,6 @@
-// Copyright (c) 2013 Fruition Partners, Inc.
+/*
+ * Load settings and config used to identify project, connection and folder syncing information.
+ */
 
 var assert = require('assert-plus');
 require('colors');
@@ -6,6 +8,9 @@ var fs = require('fs');
 var path = require('path');
 var restify = require('restify');
 var util = require('util');
+
+// non documented function. Worry about that some other day. It won't go away soon because nodejs relies on it!
+var extend = require('util')._extend;
 
 // the location of the config file (populated dynamically)
 var config_file = '';
@@ -33,14 +38,38 @@ function validateRootFolder(folder) {
     assert.ok(fs.statSync(folder).isDirectory(), util.format('root folder: "%s" is not a directory.', folder));
 }
 
+function configValid(config) {
+    if (!config) {
+        console.error('Invalid configuration. Application exiting.'.red);
+        process.exit(1);
+        return false;
+    }
+    logConfig(config);
+    return true;
+}
+
+// OS friendly solution to path
+function homeConfigPath() {
+    return path.join(_getHomeDir(), '.filesync', 'app.config.json');
+}
+
+function _getHomeDir() {
+    // should also be windows friendly but not tested
+    var ans = process.env[(process.platform == 'win32') ? 'USERPROFILE' : 'HOME'];
+    return ans;
+}
+
 function loadFolders(config) {
     var confRecords = require(CONFIG_RECORDS);
-    // if ignoreDefaultFolders is set to true in the app.config.json file then we won't load our default folders
+    // if true in the app.config.json file then we won't load our default folders
     if(!config.ignoreDefaultFolders) {
 
-        // TODO : allow config.folders to override confRecords.folders via merge.
-
-        config.folders = confRecords.folders;
+        // config.folders can extend/overwrite confRecords.folders if provided
+        if(config.folders) {
+            config.folders = extend(confRecords.folders, config.folders);
+        } else {
+            config.folders = confRecords.folders;
+        }
     }
 }
 
@@ -76,18 +105,6 @@ function getConfig() {
     return config;
 }
 
-
-// OS friendly solution to path
-function homeConfigPath() {
-    return path.join(_getHomeDir(), '.filesync', 'app.config.json');
-}
-
-function _getHomeDir() {
-    // should also be windows friendly but not tested
-    var ans = process.env[(process.platform == 'win32') ? 'USERPROFILE' : 'HOME'];
-    return ans;
-}
-
 function setConfigLocation(pathToConfig) {
     var configFile = '';
     // set by cmd line option
@@ -111,17 +128,8 @@ function setConfigLocation(pathToConfig) {
     return configFile;
 }
 
-function configValid(config) {
-    if (!config) {
-        console.error('Invalid configuration. Application exiting.'.red);
-        process.exit(1);
-        return false;
-    }
-    logConfig(config);
-    return true;
-}
 
-
+// debug
 function logConfig(config) {
     console.log('');
     console.log('Root folder sync to instance mapping:');
@@ -134,6 +142,10 @@ function logConfig(config) {
         console.log('-', folder, '|', config.folders[folder].table);
     });
     console.log('');
+
+    if(config.debug) {
+        console.log(JSON.stringify(config));
+    }
 }
 
 
