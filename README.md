@@ -104,7 +104,7 @@ record on the instance, then add the empty local file and start editing your scr
             },
             "/Users/joe.developer/instance/records": { // mac os non-https example
                 "host": "some.instance.com:16001",
-                "protocol": "http",                     // if https is not supported then force http here
+                "protocol": "http",                    // if https is not supported then force http here
                 "auth": "YWRtaW46YWRtaW4=",
                 "preLoad": {
                     "script_includes": ["JSUtil.js",
@@ -163,14 +163,14 @@ See the **src/records.config.json** file for sample definitions.
 
 ### Advanced settings
 
-Property | Values | Purpose
+Property | Values | Default | Purpose
 ------------ | -------------------- | -------------
-debug | Bool: true / false (default) | Enable more verbose debugging. Useful to troubleshoot connection issues.
-ignoreDefaultFolders | Bool: true / false (default) | If false then utilise record to folder mapping defined in **src/records.config.json**.<br />If true then the **"folders"** property must be set as described below.
-folders | Object listing folders | See **src/records.config.json** as an example for format and usage. If this property is defined then it will override that defined in **src/records.config.json** on a per folder level. This is an easy way to specify more mappings without modifying core files. If "ignoreDefaultFolders " is set to true then **src/records.config.json** is completely ignored and all mappings must be defined in the "folders" property.
-createAllFolders | Bool: true (default) / false | Creates all folders specified by folders (if set) or the default **src/records.config.json** file.
-preLoad | Bool: true (default) / false | Creates local files that can be spcecified per root/project preLoad setting defined below. Set to false to ignore the below property and therefore avoid re-creating files on startup.
-roots[...].preLoad | Object listing folders | Defines a list of files to automatically download per folder. Saves on manual file creation efforts <br />Eg: <br />``` preLoad: { ```<br />  ```  "business_rules": ["my special rule.js", "Another rule.js"]```<br />```}```
+debug | Bool: true / false | false | Enable more verbose debugging. Useful to troubleshoot connection issues.
+ignoreDefaultFolders | Bool: true / false | false | If false then utilise record to folder mapping defined in **src/records.config.json**.<br />If true then the **"folders"** property must be set as described below.
+folders | Object listing folders | not set | See **src/records.config.json** as an example for format and usage. If this property is defined then it will override that defined in **src/records.config.json** on a per folder level. This is an easy way to specify more mappings without modifying core files. If "ignoreDefaultFolders " is set to true then **src/records.config.json** is completely ignored and all mappings must be defined in the "folders" property.
+createAllFolders | Bool: true / false | false | Creates all folders specified by folders (if set) or the default **src/records.config.json** file.
+preLoad | Bool: true / false | not set | Creates local files that can be spcecified per root/project preLoad setting defined below. Set to false to ignore the below property and therefore avoid re-creating files on startup.
+roots[...].preLoad | Object listing folders | n/a |  Defines a list of files to automatically download per folder. Saves on manual file creation efforts <br />Eg: <br />``` preLoad: { ```<br />  ```  "business_rules": ["my special rule.js", "Another rule.js"]```<br />```}```
 
 
 ### Specifying a config file
