@@ -16,6 +16,7 @@ function syncDirWrong(config) {
         var oldDir = path.join(r, '.sync');
         //console.log('Checking for old dir: ' + oldDir);
         if (fs.existsSync(oldDir)) {
+            console.log('Please remove ' + oldDir + ' and re-run with "--resync"');
             return true;
         }
     }
