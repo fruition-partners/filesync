@@ -390,6 +390,18 @@ function getLocalHash(rootDir, file) {
  * downloaded version. If the same then allow upload (ob.inSync is true).
  */
 function instanceInSync(snc, db, map, file, newData, callback) {
+
+    // first lets really check if we have a change
+    var previousLocalVersionHash = getLocalHash(map.root, file);
+    var newDataHash = makeHash(newData);
+    if (previousLocalVersionHash == newDataHash) {
+        callback(false, {
+            inSync: true,
+            noPushNeeded: true
+        });
+        return; // no changes
+    }
+
     console.log('Comparing remote version with previous local version...');
     // TODO : duplicate code here
     snc.table(db.table).getRecords(db.query, function (err, obj) {
