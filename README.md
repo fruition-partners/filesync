@@ -164,7 +164,7 @@ See the **src/records.config.json** file for sample definitions.
 ### Advanced settings
 
 Property | Values | Default | Purpose
------------- | -------------------- | -------------
+------------ | -------------------- | ------------- | -------------
 debug | Bool: true / false | false | Enable more verbose debugging. Useful to troubleshoot connection issues.
 ignoreDefaultFolders | Bool: true / false | false | If false then utilise record to folder mapping defined in **src/records.config.json**.<br />If true then the **"folders"** property must be set as described below.
 folders | Object listing folders | not set | See **src/records.config.json** as an example for format and usage. If this property is defined then it will override that defined in **src/records.config.json** on a per folder level. This is an easy way to specify more mappings without modifying core files. If "ignoreDefaultFolders " is set to true then **src/records.config.json** is completely ignored and all mappings must be defined in the "folders" property.
