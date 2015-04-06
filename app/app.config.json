@@ -4,7 +4,10 @@
             "host": "some.special.instance.com:16001",
             "protocol": "http",
             "user": "admin",
-            "pass": "admin"
+            "pass": "admin",
+            "preLoad": {
+                "script_includes": ["JSUtil.js", "Transform.js"]
+            }
         },
         "c:\\dev\\project_a": {
             "host": "demo001.service-now.com",
@@ -16,6 +19,8 @@
             "auth": "YWRtaW46YWRtaW4="
         }
     },
+    "preLoad": true,
+    "createAllFolders": true,
 
     "ignoreDefaultFolders": false,
     "debug": false

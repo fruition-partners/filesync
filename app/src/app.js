@@ -69,6 +69,15 @@ function init() {
             process.exit(1);
         }
 
+        if(config.createAllFolders) {
+            setupFolders(config, function () {});
+        }
+
+        // pre add some files defined per root in config
+        if (config.preLoad) {
+            createFiles(config);
+        }
+
         if (argv.setup) {
             setupFolders(config, function () {});
         } else if (argv.test) {
@@ -83,6 +92,34 @@ function init() {
     }
 
     upgradeNeeded(config, start);
+}
+
+/*
+ * Can be called at any point to create files defined in the config root definition
+ */
+function createFiles(config) {
+    console.log('Creating files to download...'.green);
+
+    function fileCreated(err) {
+        if (err) console.log(err.red);
+    }
+
+    // each root
+    for (var r in config.roots) {
+        var basePath = r,
+            root = config.roots[r];
+        if (root.preLoad) {
+            // each folder (assume typed correctly)
+            for (var folder in root.preLoad) {
+                // each file to create
+                for(var file in root.preLoad[folder]) {
+                    var filePath = path.join(r, folder, root.preLoad[folder][file]);
+                    console.log('File: ' + filePath);
+                    fs.ensureFile(filePath, fileCreated);
+                }
+            }
+        }
+    }
 }
 
 function displayHelp() {
