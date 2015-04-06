@@ -365,7 +365,7 @@ function saveHash(rootDir, file, data) {
     var outputString = JSON.stringify(metaData);
     fs.outputFile(dataFile, outputString, function (err) {
         if (err) {
-            console.log('Could not write out meta file'.red, hashFile);
+            console.log('Could not write out meta file'.red, dataFile);
         }
     });
 }
