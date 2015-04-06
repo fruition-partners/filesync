@@ -1,4 +1,4 @@
-# FileSync (forked and improved!)
+# FileSync (2.0.0)
 
 ## Intro
 
@@ -32,23 +32,12 @@ Configure the app.config.js file as required per **[app.config.json settings](#a
 
 **Step 1.** Ensure that your instance is running with a version greater or equal to Eureka to make use of the JSONv2 API (enabled by default).
 
-**Step 2.** Create a local folder structure for your project / source files. Project folders will be mapped to root
-folders in the **app.config.json** config file. The following example folder structure is mapped in the
-**app.config.json settings** section below:
-
-
-    c:\dev
-        \project_a
-            business_rules
-            script_includes
-        \project_b
-            script_includes
-            ui_pages
+**Step 2.** Create a folder on your computer where the records will be saved.
 
 **Step 3.** Edit **app.config.json**.
 
 * Review the **app.config.json settings** section below for guidance. **Please read all comments.**
-* Configure at least one root (project) folder to host, user, pass mapping. **"user"** and **"pass"** will be encoded and replaced
+* Configure at least one root (project) folder including the host, user and pass. **"user"** and **"pass"** will be encoded and replaced
 by an **"auth"** key at runtime.
 * **Note:** You must restart FileSync any time you update app.config.json.
 
@@ -56,15 +45,17 @@ by an **"auth"** key at runtime.
 
 With installation and configuration completed, you can start **filesync** by executing the included batch/shell scripts:
 
-* On Windows, double-click: **filesync.bat**
-* On Mac, initially, right-click on **filesync.command** and choose Open. Subsequently, you can double-click to open.
+* Windows: double-click: **filesync.bat**
+* Mac: right-click on **filesync.command** and choose Open (OS X first run security). Future use can simply double-click to open.
 
 This launches a console window where you should see log messages showing the starting configuration of FileSync.  Do not
 close this window.  This is what is watching for file changes.  As you make changes to mapped files, you'll see messages
 logged showing the sync processing.
 
-Verify everything works by adding an empty file corresponding to an instance record.  You can do this from your editor
-or IDE, or open a new command shell:
+If you are using the default config then you will already have all the appropraite folders created for you and some test script include files that will have been downloaded from the instance. See "preLoad" and "createAllFolders" options below.
+
+Additionally, you can sync more files by adding an empty file corresponding to an instance record.  You can do this from your editor
+or IDE, or via the command line:
 
 On Windows, at a command prompt:
 
@@ -78,7 +69,7 @@ On Mac, in Terminal:
     cd /path/to/project_a
     mkdir script_includes
     cd script_includes
-    touch JSUtil.js
+    touch JSUtil.js         <-- creates an empty file named JSUtil.js
 
 Adding the empty JSUtil.js file will cause FileSync to sync the (OOB) JSUtil script include to the file. Any changes to
 this local file will now be synced to the mapped instance.
@@ -95,34 +86,51 @@ record on the instance, then add the empty local file and start editing your scr
 *Comments are included below for documentation purposes but are not valid in JSON files. You can validate JSON at
 <http://www.jslint.com/>*
 
-Note that it is now possible to store your app.config.json file separate from the repo. Just save your file in your home directory as below:
-
- * on mac: `~/.filesync/app.config.json`
- * on windows: `c:\\<HOME DIR>\.filesync\app.config.json`
-
+### Simple app.config.json file
 ```
     {
         // maps a root (project) folder to an instance
         "roots": {
             "c:\\dev\\project_a": {                 // full path to root folder
                                                     // on Windows, ensure that backslashes are doubled
-                                                    //    since backslash is an escape character in JSON
-                                                    // on Mac, remove 'c:' and use forward slashes as in
-                                                    //    "/path/to/project_a"
+                                                    //   since backslash is an escape character in JSON
                 "host": "demo001.service-now.com",  // instance host name
                 "user": "admin",                    // instance credentials
-                "pass": "admin"                     //    encoded to auth key and re-saved at runtime
+                "pass": "admin"                     // encoded to auth key and re-saved at runtime
             },
             "c:\\dev\\project_b": {                 // add additional root mappings as needed
                 "host": "demo002.service-now.com",
                 "auth": "YWRtaW46YWRtaW4="          // example of encoded user/pass
             },
             "/Users/joe.developer/instance/records": { // mac os non-https example
-                "host": "some.special.instance.com:16001",
+                "host": "some.instance.com:16001",
                 "protocol": "http",                     // if https is not supported then force http here
-                "auth": "YWRtaW46YWRtaW4="
+                "auth": "YWRtaW46YWRtaW4=",
+                "preLoad": {
+                    "script_includes": ["JSUtil.js",
+                                        "Transform.js"] // specify a list of files to create and sync instead of
+                                                        //   using the command line.
+                }
             }
         },
+
+        "preLoad": true,                            // create files as defined above per root in "preLoad"
+        "createAllFolders": true,                   // create local folders to save on manual effort
+
+        "ignoreDefaultFolders": false,              // set to false to use basic mappings defined per
+                                                    //  src/records.config.json file
+
+        "debug": false                              // set to true to enable more detailed debug logging
+    }
+```
+
+### Folder definitions (optional)
+
+See the **src/records.config.json** file for sample definitions.
+
+```
+        "roots" { .... },
+
         // maps a subfolder of a root folder to a table on the configured instance
         "folders": {
             "script_includes": {                    // folder with files to sync
@@ -142,17 +150,39 @@ Note that it is now possible to store your app.config.json file separate from th
             "ui_pages": {
                 "table": "sys_ui_page",
                 "key": "name",
-                "fields": {                         // multiple fields for the same record can be mapped to multiple
-                    "xhtml": "html",                //   files by using different filename suffixes
-                    "client.js": "client_script",   //   for ui pages, you might have three separate files:
+                "fields": {                          // multiple fields for the same record can be mapped to multiple
+                    "xhtml": "html",                 //   files by using different filename suffixes
+                    "client.js": "client_script",    //   for ui pages, you might have three separate files:
                     "server.js": "processing_script" //    mypage.xhtml, mypage.client.js, mypage.server.js
-                }                                   //   to store the all script associated with the page
+                }                                    //   to store the all script associated with the page
             }
             ...
         },
-        "debug": false                              // set to true to enable more detailed debug logging
-    }
 ```
+
+
+### Advanced settings
+
+Property | Values | Purpose
+------------ | -------------------- | -------------
+debug | Bool: true / false (default) | Enable more verbose debugging. Useful to troubleshoot connection issues.
+ignoreDefaultFolders | Bool: true / false (default) | If false then utilise record to folder mapping defined in **src/records.config.json**.<br />If true then the **"folders"** property must be set as described below.
+folders | Object listing folders | See **src/records.config.json** as an example for format and usage. If this property is defined then it will override that defined in **src/records.config.json** on a per folder level. This is an easy way to specify more mappings without modifying core files. If "ignoreDefaultFolders " is set to true then **src/records.config.json** is completely ignored and all mappings must be defined in the "folders" property.
+createAllFolders | Bool: true (default) / false | Creates all folders specified by folders (if set) or the default **src/records.config.json** file.
+preLoad | Bool: true (default) / false | Creates local files that can be spcecified per root/project preLoad setting defined below. Set to false to ignore the below property and therefore avoid re-creating files on startup.
+roots[...].preLoad | Object listing folders | Defines a list of files to automatically download per folder. Saves on manual file creation efforts <br />Eg: <br />``` preLoad: { ```<br />  ```  "business_rules": ["my special rule.js", "Another rule.js"]```<br />```}```
+
+
+### Specifying a config file
+
+Config files can be specified in 1 of 3 ways:
+ * Not specified (eg from filesync.command) which will use the provided app.config.json file by default
+ * By the existence of a file in the home directory
+  * on mac: `~/.filesync/app.config.json`
+  * on windows: `c:\\<HOME DIR>\.filesync\app.config.json`
+ * Or via the command line.
+  * Eg. ```./node-darwin src/app --config=~/Desktop/my-instance.config.json```
+
 
 ## Road Map
 
@@ -162,6 +192,7 @@ Considering ServiceNow does not handle merge conflicts at all, this is a major g
 - [x] add protocol support to use http:// for on-premise setups
 - [x] check if the record has been updated on the server before uploading changes and warn the user and cancel the upload (basic conflict management)
 - [x] add notification (mac OS) to signify that the upload is complete (or failed)
+- [ ] ignore hidden files better (Eg. ".DS_Store", ".jshintrc")
 - [ ] when an update conflict has been detected write out the remote file and launch a diff app (command line "diff" or mac OS X Code "FileMerge" via "`opendiff <left> <right>`") for the user to help resolve the differences
 - [ ] allow upload override of server record if the user has made a merge of remote and local data
 
@@ -169,19 +200,20 @@ Considering ServiceNow does not handle merge conflicts at all, this is a major g
 - [x] upgrade 3rd party node_modules (except restify)
 - [ ] upgrade restify or find alternative that works better (restify is at "2.6.0" but should be "3.0.1" which needs "node": ">=0.10" run `npm outdated` for details)
 - [x] use standard npm package.json setup to specify 3rd part node_modules
-- [ ] ignore hidden files better (Eg. ".DS_Store", ".jshintrc")
+
 
 
 
 Nice to haves
 - [x] auto create folder structure for user (```./node-darwin app/src --setup```)
 - [ ] add record browser to automatically download chosen files.
-- [x] option to re-download all files from instance
+- [x] option to re-download all files from instance (```./node-darwin app/src --resync```)
 - [ ] auto download records created or updated by a given user ID
 - [ ] notifications play sounds, show more info, are clickable etc.
 - [ ] offline support? (keep track of files that are queued to upload when the connection is available again and retry).. maybe not. This could be dangerous if records get updated without someone to test them. Potentially workable if the last queued file is less than 3 minutes ago to cater for flaky mobile/roaming connections.
 - [ ] save meta data recieved in request for user info (eg, sys_updated_on, sys_updated_by, sys_mod_count, description)
 - [ ] config option to log details to log file (help others send log info)
+- [x] download records on startup provided by a list (See ```"preLoad"``` in app.config.json)
 
 
 ## Contributing workflow
@@ -208,19 +240,24 @@ See [CHANGES.md](https://github.com/dynamicdan/filesync/blob/master/CHANGES.md)
 
 ## Architecture
 
-FileSync was built using [Node.js](http://nodejs.org/), a platform built on Chrome's JavaScript runtime. Zipped
-distribution contents:
+FileSync was built using [Node.js](http://nodejs.org/), a platform built on Chrome's JavaScript runtime.
 
-* legacy-FileSync-v0.1.0.zip - this file will go soon (pre-fork version of FileSync)
-* README.md - this file, written in [Markdown](http://daringfireball.net/projects/markdown/) syntax
+
+* README.md - this file, written in [Markdown][Markdown] syntax
+* CHANGES.md - clean summary of updates (not versions), written in [Markdown][Markdown] syntax
 * app/node.exe, node-darwin - Node.js runtime binaries
 * app/filesync.bat, filesync.command - Windows and Mac batch/shell scripts for starting FileSync
 * app/app.config.json - configuration file with mapping of folders to instances/tables
 * app/node_modules - folder containing 3rd-party node.js modules (from NPM) used to build app
 * app/src/app.js - main application that watches for file changes
+* app/src/notify.js - fancy system notifications
+* app/src/upgrade.js - ensures that users that upgrade can easily resolve *breaking* changes
+* app/src/records.config.json - default folder definitions (that can be overwritten in app.config.json files)
 * app/src/config.js - a module used to load and validate and app.config.json file
 * app/src/snc-client.js - a module that interacts with SN JSON Web Service to receive and send updates to instance
-* [root folder] / .sync/ - a directory used to store information to help with synchronisation with the instance
+* [root folder] / .syncData/ - a directory used to store information to help synchronise with the instance
+
+[Markdown]: http://daringfireball.net/projects/markdown/
 
 ## Windows support
 

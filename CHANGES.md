@@ -1,5 +1,16 @@
 # FileSync Changes
 
+* 2015-04-06 (**Version 2.0.0 !**)
+ * Add preLoad option to download files defined per root in "preLoad" object.
+ * Re-write documentation for app.config.json due to massive simplification and first-run setup.
+ * Fix redundant requests to instance for syncing
+ * Add automatic folder creation option
+   * Set ```createAllFolders: true``` in app.config.json
+
+* 2015-04-04
+ * Make folder definitions standard across all projects but allow users to override the defaults or extend them.
+   * Set ```"ignoreDefaultFolders": true,``` if desired and specify own ```"folders": {...}``` for a custom setup.
+
 * 2015-04-03 (**major changes!** :mushroom:)
  * Allow specifying the location of the config file:
    * ```./node-darwin app/src --config=/computer/somefile.json```
