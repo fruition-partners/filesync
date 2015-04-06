@@ -421,8 +421,6 @@ function instanceInSync(snc, db, map, file, newData, callback) {
         console.log('Received:'.green, db);
         var remoteVersion = obj.records[0][db.field];
         var remoteHash = makeHash(remoteVersion);
-        var previousLocalVersionHash = getLocalHash(map.root, file);
-        var newDataHash = makeHash(newData);
 
         obj.inSync = false; // adding property. default to false
         obj.noPushNeeded = false; // default to false to assume we must upload
