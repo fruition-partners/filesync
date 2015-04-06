@@ -255,7 +255,7 @@ FileSync was built using [Node.js](http://nodejs.org/), a platform built on Chro
 * app/src/records.config.json - default folder definitions (that can be overwritten in app.config.json files)
 * app/src/config.js - a module used to load and validate and app.config.json file
 * app/src/snc-client.js - a module that interacts with SN JSON Web Service to receive and send updates to instance
-* [root folder] / .syncData/ - a directory used to store information to help synchronise with the instance
+* [root folder] / .sync_data/ - a directory used to store information to help synchronise with the instance
 
 [Markdown]: http://daringfireball.net/projects/markdown/
 
