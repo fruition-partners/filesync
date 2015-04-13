@@ -13,31 +13,35 @@ var fs = require('fs-extra');
 var path = require('path');
 // used to generate a hash of a file
 var crypto = require('crypto');
-
-
-// ---------------------------------------------------
-// custom code
-var config = require('./config');
-var upgradeNeeded = require('./upgrade');
-var sncClient = require('./snc-client');
-var notify = require('./notify');
-var notifyUser = null;
-// list of supported notification messages defined in notify.js
-var msgCodes = null;
+var glob = require("glob");
 
 // ---------------------------------------------------
+// custom imports
+var config = require('./config'),
+    upgradeNeeded = require('./upgrade'),
+    sncClient = require('./snc-client'),
+    notify = require('./notify');
 
-// true when all existing files should be re-downloaded
-var resyncFiles = false;
+// custom vars
+var notifyObj = notify();
+var notifyUserMsg = notifyObj.msg,
+    notifyEnabled = true,
+    // list of supported notification messages defined in notify.js
+    msgCodes = notifyObj.codes;
 
 // a directory to store hash information used to detect remote changes to records before trying to overwrite them
 var syncDir = '.sync_data';
 
-// store a collection of files being written out so that we can ignore them from our watch script
-var filesInprogress = {};
-
 var isMac = /^darwin/.test(process.platform);
 //var isWin = /^win/.test(process.platform);
+
+var chokiWatcher = false,
+    chokiWatcherReady = false;
+
+var filesInQueueToDownload = 0,
+    filesToPreLoad = {};
+
+// ---------------------------------------------------
 
 
 // entry point
@@ -58,76 +62,148 @@ function init() {
         process.exit(1);
     }
 
-    // setup notify
-    var notifyObj = notify(config);
-    notifyUser = notifyObj.msg;
-    msgCodes = notifyObj.codes;
+    if (config.debug) {
+        notifyObj.setDebug();
+    }
 
     function start(upgradeBlocks) {
         if (upgradeBlocks) {
             console.error('Upgrade is needed. Please check the Readme/change log online.'.red);
             process.exit(1);
         }
-
-        if(config.createAllFolders) {
-            setupFolders(config, function () {});
-        }
-
-        // pre add some files defined per root in config
-        if (config.preLoad) {
-            createFiles(config);
-        }
-
-        if (argv.setup) {
-            setupFolders(config, function () {});
-        } else if (argv.test) {
+        if (argv.test) {
             console.log('TEST MODE ACTIVATED'.green);
             testDownload(config);
-        } else if (argv.resync) {
-            resyncFiles = true;
-            watchFolders(config);
-        } else {
-            watchFolders(config);
+            return;
         }
+
+        if (config.createAllFolders || argv.setup) {
+            setupFolders(config, function () {});
+        }
+        // pre add some files defined per root in config
+        if (config.preLoad) {
+            addConfigFiles(config);
+        }
+
+        // callback dependency
+        if (argv.resync || config._resyncFiles) {
+            // retest this!
+            config._resyncFiles = true;
+            resyncExistingFiles(config);
+        }
+
+        initComplete();
+    }
+
+    function initComplete() {
+        if(config.preLoad || config._resyncFiles) {
+            // if files are being downloaded then the watcher will be started when
+            // the download queue is cleared
+            return;
+        }
+        console.log('[INIT] initComplete.. starting watcher..');
+        watchFolders(config);
     }
 
     upgradeNeeded(config, start);
 }
 
-/*
- * Can be called at any point to create files defined in the config root definition
- */
-function createFiles(config) {
-    console.log('Creating files to download...'.green);
 
-    function fileCreated(err) {
-        if (err) console.log(err.red);
+/*
+ * Get a list of all the files and add it to "filesToPreLoad"
+ */
+
+function resyncExistingFiles(config) {
+    var watchedFolders = Object.keys(config.roots);
+    var roots = [];
+    for (var i = 0; i < watchedFolders.length; i++) {
+        // match all files in all directories (excludes .hidden dirs by default)
+        roots.push(watchedFolders[i] + '/**/*');
+    }
+    var pattern = roots.join('');
+    // can be multiple sets
+    if(roots.length > 1) {
+        pattern = '{' + roots.join(',') + '}';
     }
 
+    glob(pattern, {
+        nodir: true
+    }, function (err, files) {
+        if (err) console.log(err);
+
+        if(files.length === 0) {
+            console.log('No files found to resync'.red);
+            watchFolders(config);
+        }
+
+        // files is an array of filenames.
+        for (var x in files) {
+            //console.log(('Adding file: '+files[x]).blueBG);
+            addToPreLoadList(files[x], {
+                filePath: files[x]
+            });
+        }
+    });
+}
+
+
+function notifyUser(code, args) {
+    // depending on the notification system, we could flood the OS and get blocked by security
+    //   Eg. too many open files via terminal-notifier-pass.app launches)
+    if (notifyEnabled) {
+        notifyUserMsg(code, args);
+    }
+}
+
+function addConfigFiles(config) {
+    var filesToGet = 0;
     // each root
     for (var r in config.roots) {
         var basePath = r,
             root = config.roots[r];
-        if (root.preLoad) {
+        if (root.preLoadList) {
             // each folder (assume typed correctly)
-            for (var folder in root.preLoad) {
+            for (var folder in root.preLoadList) {
                 // each file to create
-                for(var file in root.preLoad[folder]) {
-                    var filePath = path.join(r, folder, root.preLoad[folder][file]);
-                    console.log('File: ' + filePath);
-                    fs.ensureFile(filePath, fileCreated);
+                for (var file in root.preLoadList[folder]) {
+                    var filePath = path.join(r, folder, root.preLoadList[folder][file]);
+                    addToPreLoadList(filePath, {
+                        filePath: filePath
+                    });
+                    filesToGet++;
                 }
             }
         }
     }
+    console.log(('Downloading ' + filesToGet + ' files...').green + '(disable this by setting preLoad to false in your config file.)');
 }
+
+function addToPreLoadList(filePath, options) {
+    options = options || {
+        filePath: filePath
+    };
+    // only process if we don't already have it in the list
+    if (typeof filesToPreLoad[filePath] == 'undefined') {
+        filesToPreLoad[filePath] = options;
+        addFile(filePath);
+    }
+}
+
+function addIfNotPresent(filePath) {
+    fs.exists(filePath, function (exists) {
+        if (!exists) {
+            addFile(filePath);
+        }
+    });
+}
+
 
 function displayHelp() {
     var msgs = ['--help     (shows this message)',
                 '--config   (specify a path to your app.config.json file)',
                 '--setup    (will create your folders for you)',
-               '--test     (will run a download test for a known file on the instance)',
-               '--resync   (will re-download all the files to get the latest server version)'];
+                '--test     (will run a download test for a known file on the instance)',
+                '--resync   (will re-download all the files to get the latest server version)'];
     console.log('Help'.green);
     console.log('List of options:');
     for (var i in msgs) {
@@ -200,21 +276,51 @@ function getSncClient(root) {
     return host.client;
 }
 
-// maintain a list of files being written
-function writingFile(file) {
-    filesInprogress[file] = true;
+/* keep track of files waiting to be processed
+ * and disable watching files to avoid double processing
+ */
+function queuedFile() {
+    if (chokiWatcher) {
+        //console.log('*********** Killed watch *********** '.green);
+        chokiWatcher.close();
+        chokiWatcher = false;
+    }
+    filesInQueueToDownload++;
+    console.log(('Files left in queue: ' + filesInQueueToDownload).redBG);
+
+    // more than 2 files in the queue? Lets disable notify to avoid the ulimit issue
+    if (filesInQueueToDownload > 2) {
+        notifyEnabled = false;
+    }
 }
 
-function doneWritingFile(file) {
-    delete filesInprogress[file];
-}
-
-function isWritingFile(file) {
-    console.log('checking writing file for : ' + file);
-    return filesInprogress[file];
+/*
+ * When done processing a file consider if we can re-enable
+ * notifications and watching for changed files.
+ */
+function decrementQueue() {
+    filesInQueueToDownload--;
+    console.log(('Files left in queue: ' + filesInQueueToDownload).blueBG);
+    if (filesInQueueToDownload === 0) {
+        // restart watch
+        if (!notifyEnabled) {
+            notifyEnabled = true;
+            notifyUser(msgCodes.ALL_DOWNLOADS_COMPLETE, "");
+        }
+        if (!chokiWatcher) {
+            // do not start watching folders straight away as there may be IO streams
+            // being closed which will cause a "change" event for chokidar on the file.
+            setTimeout(function () {
+                watchFolders(config);
+            }, 200); // delay for 200 milliseconds to be sure that chokidar won't freak out!
+        }
+    }
 }
 
 function receive(file, map) {
+    // we are about to download something!!
+    queuedFile();
+
     var snc = getSncClient(map.root);
     // note: creating a new in scope var so cb gets correct map - map.name was different at cb exec time
     var db = {
@@ -226,6 +332,7 @@ function receive(file, map) {
     snc.table(db.table).getRecords(db.query, function (err, obj) {
         if (err) {
             notifyUser(msgCodes.COMPLEX_ERROR);
+            decrementQueue();
             return handleError(err, db);
         }
         if (obj.records.length === 0) {
@@ -234,11 +341,12 @@ function receive(file, map) {
                 file: map.keyValue,
                 field: map.field
             });
+            decrementQueue();
             return console.log('No records found:'.yellow, db);
         }
 
         if (obj.records[0][db.field].length < 1) {
-            console.log('**WARNING : this record is 0 bytes');
+            console.log('**WARNING : this record is 0 bytes'.red);
             notifyUser(msgCodes.RECEIVED_FILE_0_BYTES, {
                 table: map.table,
                 file: map.keyValue,
@@ -247,10 +355,7 @@ function receive(file, map) {
         }
         console.log('Received:'.green, db);
 
-        writingFile(file);
-
-        return fs.writeFile(file, obj.records[0][db.field], function (err) {
-            doneWritingFile(file);
+        return fs.outputFile(file, obj.records[0][db.field], function (err) {
             if (err) {
                 notifyUser(msgCodes.RECEIVED_FILE_ERROR, {
                     table: map.table,
@@ -267,9 +372,11 @@ function receive(file, map) {
                 file: map.keyValue,
                 field: map.field
             });
-            return console.log('Saved:'.green, {
+
+            console.log('Saved:'.green, {
                 file: file
             });
+            decrementQueue();
         });
     });
 }
@@ -305,11 +412,11 @@ function send(file, map) {
                 return;
             }
             if (obj.noPushNeeded) {
-                console.log('Local and remote in sync, no need for push/send.');
+                console.log('Local has no changes or remote in sync; no need for push/send.');
                 return;
             }
 
-            return snc.table(db.table).update(db.query, body, function (err, obj) {
+            snc.table(db.table).update(db.query, body, function (err, obj) {
                 if (err) {
                     notifyUser(msgCodes.UPLOAD_ERROR, {
                         file: map.keyValue
@@ -322,33 +429,22 @@ function send(file, map) {
                 notifyUser(msgCodes.UPLOAD_COMPLETE, {
                     file: map.keyValue
                 });
-                return console.log('Updated:'.green, db);
+                console.log('Updated instance version:'.green, db);
             });
         });
     });
 }
 
-function onAdd(file, stats) {
+function addFile(file, stats) {
+    stats = stats || false;
     var map = getSyncMap(file);
     if (!map) return;
 
-    if (stats.size > 0) {
-
-        if (resyncFiles) {
-            console.log('Resync file: ' + file);
-            fs.writeFile(file, '', function (err) {
-                if (err) {
-
-                    console.log('could not reset file to 0 bytes'.red);
-                    return;
-                }
-                //console.log('wrote file: ' + file);
-            });
-        }
+    if (stats && stats.size > 0) {
         // these files can be ignored (we only process empty files)
         return;
     }
-    if (config.debug) console.log('Added:', {
+    if (config.debug) console.log('Adding:', {
         file: file,
         table: map.table,
         field: map.field
@@ -359,16 +455,11 @@ function onAdd(file, stats) {
 }
 
 function onChange(file, stats) {
-    if (isWritingFile(file)) {
-        console.log('Still writing out a file so ignoring: ' + file);
-        return;
-    }
-
     var map = getSyncMap(file);
     if (!map) return;
 
     if (stats.size > 0) {
-        console.log('Syncing changed file to instance', file);
+        console.log('Potentially syncing changed file to instance', file);
         send(file, map);
     } else {
         console.log('Syncing empty file from instance', file);
@@ -416,7 +507,7 @@ function getLocalHash(rootDir, file) {
         fContents = metaObj.syncHash;
     } catch (err) {
         // don't care.
-        console.log('--------- data file not yet existing ---------------');
+        console.log('--------- data file not yet existing ---------------'.red);
     }
     return fContents;
 }
@@ -483,15 +574,24 @@ function instanceInSync(snc, db, map, file, newData, callback) {
 // -----------------------------------------------------------
 
 
+
 function watchFolders(config) {
+    console.log('*********** Watching for changes ***********'.green);
     var watchedFolders = Object.keys(config.roots);
-    var ignoreDir = new RegExp("/" + syncDir + "/");
-    chokidar.watch(watchedFolders, {
+    chokiWatcher = chokidar.watch(watchedFolders, {
             persistent: true,
-            ignored: ignoreDir
+            // ignores use anymatch (https://github.com/es128/anymatch)
+            ignored: ["**/.*"] // ignore hidden files/dirs
         })
-        .on('add', onAdd)
+        .on('add', function (file, stats) {
+            if (chokiWatcherReady) {
+                addFile(file, stats);
+            }
+        })
         .on('change', onChange)
+        .on('ready', function () {
+            chokiWatcherReady = true;
+        })
         .on('error', function (error) {
             console.error('Error watching files: %s'.red, error);
         });
@@ -534,18 +634,10 @@ function testDownload(config) {
     var testFile = path.join('script_includes', 'JSUtil.js'),
         testFilePath = '';
 
-    function fileCreated(err) {
-        if (err) console.log(err);
-        console.log('created test file!');
-        // hard code stats obj.
-        onAdd(testFilePath, {
-            size: 0
-        });
-    }
     for (var r in config.roots) {
         testFilePath = path.join(r, testFile);
         console.log('Creating test file: ' + testFilePath);
-        fs.ensureFile(testFilePath, fileCreated);
+        addFile(testFilePath);
         break;
     }
 

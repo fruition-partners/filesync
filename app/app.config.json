@@ -5,7 +5,7 @@
             "protocol": "http",
             "user": "admin",
             "pass": "admin",
-            "preLoad": {
+            "preLoadList": {
                 "script_includes": ["JSUtil.js", "Transform.js"]
             }
         },

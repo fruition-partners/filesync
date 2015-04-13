@@ -87,7 +87,7 @@ record on the instance, then add the empty local file and start editing your scr
 <http://www.jslint.com/>*
 
 ### Simple app.config.json file
-```
+```javascript
     {
         // maps a root (project) folder to an instance
         "roots": {
@@ -106,7 +106,7 @@ record on the instance, then add the empty local file and start editing your scr
                 "host": "some.instance.com:16001",
                 "protocol": "http",                    // if https is not supported then force http here
                 "auth": "YWRtaW46YWRtaW4=",
-                "preLoad": {
+                "preLoadList": {
                     "script_includes": ["JSUtil.js",
                                         "Transform.js"] // specify a list of files to create and sync instead of
                                                         //   using the command line.
@@ -128,7 +128,7 @@ record on the instance, then add the empty local file and start editing your scr
 
 See the **src/records.config.json** file for sample definitions.
 
-```
+```javascript
         "roots" { .... },
 
         // maps a subfolder of a root folder to a table on the configured instance
@@ -169,8 +169,8 @@ debug | Bool: true / false | false | Enable more verbose debugging. Useful to tr
 ignoreDefaultFolders | Bool: true / false | false | If false then utilise record to folder mapping defined in **src/records.config.json**.<br />If true then the **"folders"** property must be set as described below.
 folders | Object listing folders | not set | See **src/records.config.json** as an example for format and usage. If this property is defined then it will override that defined in **src/records.config.json** on a per folder level. This is an easy way to specify more mappings without modifying core files. If "ignoreDefaultFolders " is set to true then **src/records.config.json** is completely ignored and all mappings must be defined in the "folders" property.
 createAllFolders | Bool: true / false | false | Creates all folders specified by folders (if set) or the default **src/records.config.json** file.
-preLoad | Bool: true / false | not set | Creates local files that can be spcecified per root/project preLoad setting defined below. Set to false to ignore the below property and therefore avoid re-creating files on startup.
-roots[...].preLoad | Object listing folders | n/a |  Defines a list of files to automatically download per folder. Saves on manual file creation efforts <br />Eg: <br />``` preLoad: { ```<br />  ```  "business_rules": ["my special rule.js", "Another rule.js"]```<br />```}```
+preLoad | Bool: true / false | not set | Creates local files that can be specified per root/project preLoad setting defined below. Set to false to ignore the below property. Note that files that already exist are ignored but there is however a slight performance cost if you leave this option set to true. <br />**TIP**: set to false once files have been created.
+roots[...].preLoadList | Object listing folders and files | n/a |  Defines a list of files to automatically download per folder. Saves on manual file creation efforts <br />Eg: <br />``` preLoadList: { ```<br />  ```  "business_rules": ["my special rule.js", "Another rule.js"]```<br />```}```
 
 
 ### Specifying a config file
@@ -192,8 +192,8 @@ Considering ServiceNow does not handle merge conflicts at all, this is a major g
 - [x] add protocol support to use http:// for on-premise setups
 - [x] check if the record has been updated on the server before uploading changes and warn the user and cancel the upload (basic conflict management)
 - [x] add notification (mac OS) to signify that the upload is complete (or failed)
-- [ ] ignore hidden files better (Eg. ".DS_Store", ".jshintrc")
-- [ ] when an update conflict has been detected write out the remote file and launch a diff app (command line "diff" or mac OS X Code "FileMerge" via "`opendiff <left> <right>`") for the user to help resolve the differences
+- [x] ignore hidden files better (Eg. ".DS_Store", ".jshintrc")
+- [ ] when an update conflict has been detected write out the remote file and launch a diff app (command line "diff" or mac OS XCode "FileMerge" via "`opendiff <left> <right>`") for the user to help resolve the differences
 - [ ] allow upload override of server record if the user has made a merge of remote and local data
 
 - [ ] upgrade node binaries to latest versions (currently version "v0.8.25". version here http://nodejs.org/dist/v0.10.37/ needs testing with restify)

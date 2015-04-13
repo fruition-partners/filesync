@@ -41,7 +41,7 @@ function sncClient(config) {
             if (!res && err) {
 
                 var errorList = {
-                    'ECONNREFUSED': 'Missing interent connection or connection was refused! (too many requests?)',
+                    'ECONNREFUSED': 'Missing interent connection or connection was refused!',
                     'ENOTFOUND': 'No connection available (do we have internet?)',
                     'ETIMEDOUT': 'Connection timed out. Internet down?'
                 };

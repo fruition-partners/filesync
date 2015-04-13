@@ -10,14 +10,15 @@ var isMac = /^darwin/.test(process.platform);
 if (isMac) {
     var notify = require('osx-notifier');
 }
+var debug = false;
 
-
-function notifyUser(config) {
+function notifyUser() {
 
     // a bunch of notification codes to be re-used
     var codes = {
         UPLOAD_COMPLETE: 1,
         UPLOAD_ERROR: -1,
+        ALL_DOWNLOADS_COMPLETE: 200,
         RECEIVED_FILE: 2,
         RECEIVED_FILE_ERROR: -2,
         RECEIVED_FILE_0_BYTES: -20,
@@ -33,7 +34,7 @@ function notifyUser(config) {
     //        but are being received and exist in the notification center. Consider adding delay or merging notifications.
     function msg(code, args) {
 
-        if (config.debug) {
+        if (debug) {
             console.log('notifying with code: ' + code);
         }
 
@@ -60,7 +61,7 @@ function notifyUser(config) {
                 type: 'pass',
                 title: 'Download Complete',
                 subtitle: '',
-                message: args.file + ' (' + args.table + ':' + args.field + ')//'
+                message: args.file + ' (' + args.table + ':' + args.field + ')'
             };
         } else if (code == codes.RECEIVED_FILE_ERROR) {
             notifyArgs = {
@@ -97,6 +98,13 @@ function notifyUser(config) {
                 subtitle: '',
                 message: 'Please see command line output for details.'
             };
+        } else if( code == codes.ALL_DOWNLOADS_COMPLETE) {
+            notifyArgs = {
+                type: 'pass',
+                title: 'All Downloads Complete',
+                subtitle: '',
+                message: 'Multiple files downloaded.'
+            };
         }
 
         if (isMac) {
@@ -106,10 +114,14 @@ function notifyUser(config) {
             // linux support?
         }
     }
+    function setDebug() {
+        debug = true;
+    }
     return {
         msg: msg,
-        codes: codes
+        codes: codes,
+        setDebug: setDebug
     };
-};
+}
 
 module.exports = notifyUser;

@@ -1,5 +1,9 @@
 # FileSync Changes
 
+* 2015-04-13 (**Version 2.1.0**)
+ * Rewrite pre-loading and re-syncing of files.
+ * Clean up watching files system to be enabled and disabled at the right times and avoid file writes triggering watch changes.
+
 * 2015-04-06 (**Version 2.0.0 !**)
  * Add preLoad option to download files defined per root in "preLoad" object.
  * Re-write documentation for app.config.json due to massive simplification and first-run setup.
