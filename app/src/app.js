@@ -269,11 +269,11 @@ function getSyncMap(file) {
 
 function getSncClient(root) {
     var host = config.roots[root];
-    host.debug = config.debug;
-    if (!host.client) {
-        host.client = sncClient(host);
+    if (!host._client) {
+        host._client = sncClient(host);
+        host.debug = config.debug;
     }
-    return host.client;
+    return host._client;
 }
 
 /* keep track of files waiting to be processed
