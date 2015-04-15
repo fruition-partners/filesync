@@ -21,7 +21,7 @@ function FileRecord(config, file) {
 method.debug = function () {
     console.log(('filePath: ' + this.filePath).green);
 
-}
+};
 
 function getHashFileLocation(rootDir, filePath) {
     var syncFileRelative = filePath.replace(rootDir, '/' + syncDir);
@@ -41,7 +41,7 @@ method.getLocalHash = function () {
         console.log('--------- data file not yet existing ---------------'.red);
     }
     return fContents;
-}
+};
 
 function makeHash(data) {
     var hash1 = crypto.createHash('md5').update(data).digest('hex');
@@ -65,12 +65,12 @@ method.saveHash = function (data) {
             console.log('Could not write out meta file'.red, dataFile);
         }
     });
-}
+};
 
 method.getMeta = function () {
     console.log('got meta');
     return {};
-}
+};
 
 
 method.getRoot = function() {
@@ -84,7 +84,7 @@ method.getRoot = function() {
         root = up;
     }
     return root;
-}
+};
 
 function getFieldMap(filename, map) {
     var suffixes = Object.keys(map.fields);
@@ -119,11 +119,11 @@ method.getSyncMap = function() {
     map.root = this.rootDir;
     this.syncMap = map;
     return map;
-}
+};
 
 method.validFile = function() {
     return this.getSyncMap();
-}
+};
 
 module.exports = {
     FileRecord: FileRecord,
