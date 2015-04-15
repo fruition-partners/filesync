@@ -96,7 +96,7 @@ function init() {
     }
 
     function initComplete() {
-        if(config.preLoad || config._resyncFiles) {
+        if (config.preLoad || config._resyncFiles) {
             // if files are being downloaded then the watcher will be started when
             // the download queue is cleared
             return;
@@ -122,7 +122,7 @@ function resyncExistingFiles(config) {
     }
     var pattern = roots.join('');
     // can be multiple sets
-    if(roots.length > 1) {
+    if (roots.length > 1) {
         pattern = '{' + roots.join(',') + '}';
     }
 
@@ -131,7 +131,7 @@ function resyncExistingFiles(config) {
     }, function (err, files) {
         if (err) console.log(err);
 
-        if(files.length === 0) {
+        if (files.length === 0) {
             console.log('No files found to resync'.red);
             watchFolders(config);
         }
@@ -347,6 +347,7 @@ function receive(file, map) {
 
         if (obj.records[0][db.field].length < 1) {
             console.log('**WARNING : this record is 0 bytes'.red);
+
             notifyUser(msgCodes.RECEIVED_FILE_0_BYTES, {
                 table: map.table,
                 file: map.keyValue,
