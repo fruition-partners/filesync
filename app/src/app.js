@@ -20,7 +20,10 @@ var glob = require("glob");
 var config = require('./config'),
     upgradeNeeded = require('./upgrade'),
     sncClient = require('./snc-client'),
-    notify = require('./notify');
+    notify = require('./notify'),
+    FileRecordUtil = require('./file-record'),
+    FileRecord = FileRecordUtil.FileRecord,
+    makeHash = FileRecordUtil.makeHash;
 
 // custom vars
 var notifyObj = notify();
@@ -40,6 +43,9 @@ var chokiWatcher = false,
 
 var filesInQueueToDownload = 0,
     filesToPreLoad = {};
+
+// a list of FileRecord objects indexed by file path for easy access
+var fileRecords = {};
 
 // ---------------------------------------------------
 
@@ -218,55 +224,6 @@ function handleError(err, context) {
     }
 }
 
-function _getHomeDir() {
-    // should also be windows friendly but not tested
-    var ans = process.env[(process.platform == 'win32') ? 'USERPROFILE' : 'HOME'];
-    return ans;
-}
-
-function getRoot(file) {
-    var root = path.dirname(file);
-    while (!config.roots[root]) {
-        var up = path.dirname(root);
-        if (root === up) throw new Error('Failed to find root folder.');
-        root = up;
-    }
-    return root;
-}
-
-function getFieldMap(filename, map) {
-    var suffixes = Object.keys(map.fields);
-    for (var i = 0; i < suffixes.length; i++) {
-        var suffix = suffixes[i];
-        var match = filename.match(new RegExp(suffix + '$'));
-        if (match) {
-            var keyValue = filename.slice(0, match.index - 1);
-            return {
-                keyValue: keyValue,
-                field: map.fields[suffix]
-            };
-        }
-    }
-    return null;
-}
-
-function getSyncMap(file) {
-    var folder = path.basename(path.dirname(file));
-
-    // validate parent folder is mapped
-    var map = config.folders[folder];
-    if (!map) return null;
-
-    // validate file suffix is mapped
-    var fieldMap = getFieldMap(path.basename(file), map);
-    if (!fieldMap) return null;
-
-    map.keyValue = fieldMap.keyValue;
-    map.field = fieldMap.field;
-    map.root = getRoot(file);
-    return map;
-}
-
 function getSncClient(root) {
     var host = config.roots[root];
     if (!host._client) {
@@ -367,7 +324,7 @@ function receive(file, map) {
             }
 
             // write out hash for collision detection
-            saveHash(map.root, file, obj.records[0][db.field]);
+            fileRecords[file].saveHash(obj.records[0][db.field]);
             notifyUser(msgCodes.RECEIVED_FILE, {
                 table: map.table,
                 file: map.keyValue,
@@ -426,7 +383,7 @@ function send(file, map) {
                 }
 
                 // update hash for collision detection
-                saveHash(map.root, file, data);
+                fileRecords[file].saveHash(data);
                 notifyUser(msgCodes.UPLOAD_COMPLETE, {
                     file: map.keyValue
                 });
@@ -437,9 +394,11 @@ function send(file, map) {
 }
 
 function addFile(file, stats) {
+
+    if(!trackFile(file)) return;
+
     stats = stats || false;
-    var map = getSyncMap(file);
-    if (!map) return;
+    var map = fileRecords[file].getSyncMap();
 
     if (stats && stats.size > 0) {
         // these files can be ignored (we only process empty files)
@@ -456,8 +415,7 @@ function addFile(file, stats) {
 }
 
 function onChange(file, stats) {
-    var map = getSyncMap(file);
-    if (!map) return;
+    var map = fileRecords[file].getSyncMap();
 
     if (stats.size > 0) {
         console.log('Potentially syncing changed file to instance', file);
@@ -468,52 +426,17 @@ function onChange(file, stats) {
     }
 }
 
-// -------------------- hash functions for managing remote changes happening before local changes get uploaded
-function makeHash(data) {
-    var hash1 = crypto.createHash('md5').update(data).digest('hex');
-    return hash1;
-}
-
-function getHashFileLocation(rootDir, file) {
-    var syncFileRelative = file.replace(rootDir, '/' + syncDir);
-    var hashFile = rootDir + syncFileRelative;
-    return hashFile;
-}
-
-function saveHash(rootDir, file, data) {
-    if (config.debug) {
-        console.log('Saving meta/hash data for file: ' + file);
+/*
+ * Track this file in our fileRecords list.
+ * Return the file or undefined if not valid/existing
+ */
+function trackFile(file) {
+    var f = new FileRecord(config, file);
+    if (f.validFile() && !fileRecords[file]) {
+        fileRecords[file] = f;
     }
-    var hash = makeHash(data);
-    // todo : save more useful meta data.
-    var metaData = {
-        syncHash: hash
-    };
-
-    var dataFile = getHashFileLocation(rootDir, file);
-    var outputString = JSON.stringify(metaData);
-    fs.outputFile(dataFile, outputString, function (err) {
-        if (err) {
-            console.log('Could not write out meta file'.red, dataFile);
-        }
-    });
+    return fileRecords[file];
 }
-
-function getLocalHash(rootDir, file) {
-    var hashFile = getHashFileLocation(rootDir, file);
-    var fContents = '';
-    try {
-        fContents = fs.readFileSync(hashFile, 'utf8');
-        var metaObj = JSON.parse(fContents);
-        fContents = metaObj.syncHash;
-    } catch (err) {
-        // don't care.
-        console.log('--------- data file not yet existing ---------------'.red);
-    }
-    return fContents;
-}
-
-
 
 /* This first gets the remote record and compares with the previous
  * downloaded version. If the same then allow upload (ob.inSync is true).
@@ -521,7 +444,7 @@ function getLocalHash(rootDir, file) {
 function instanceInSync(snc, db, map, file, newData, callback) {
 
     // first lets really check if we have a change
-    var previousLocalVersionHash = getLocalHash(map.root, file);
+    var previousLocalVersionHash = fileRecords[file].getLocalHash();
     var newDataHash = makeHash(newData);
     if (previousLocalVersionHash == newDataHash) {
         callback(false, {
@@ -561,7 +484,7 @@ function instanceInSync(snc, db, map, file, newData, callback) {
             obj.inSync = true;
             obj.noPushNeeded = true;
             // update local hash.
-            saveHash(map.root, file, newData);
+            fileRecords[file].saveHash(newData);
 
             // case 2. the last local downloaded version matches the server version (stanard collision test scenario)
         } else if (remoteHash == previousLocalVersionHash) {
@@ -571,9 +494,6 @@ function instanceInSync(snc, db, map, file, newData, callback) {
         callback(err, obj);
     });
 }
-
-// -----------------------------------------------------------
-
 
 
 function watchFolders(config) {
@@ -585,6 +505,7 @@ function watchFolders(config) {
             ignored: ["**/.*"] // ignore hidden files/dirs
         })
         .on('add', function (file, stats) {
+            trackFile(file);
             if (chokiWatcherReady) {
                 addFile(file, stats);
             }
