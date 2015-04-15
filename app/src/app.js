@@ -21,6 +21,7 @@ var config = require('./config'),
     upgradeNeeded = require('./upgrade'),
     sncClient = require('./snc-client'),
     notify = require('./notify'),
+    runTests = require('./tests'),
     FileRecordUtil = require('./file-record'),
     FileRecord = FileRecordUtil.FileRecord,
     makeHash = FileRecordUtil.makeHash;
@@ -79,7 +80,7 @@ function init() {
         }
         if (argv.test) {
             console.log('TEST MODE ACTIVATED'.green);
-            testDownload(config);
+            runTests({addFile: addFile}, config);
             return;
         }
 
@@ -547,22 +548,5 @@ function setupFolders(config, callback) {
     }
 }
 
-/*
- * Creates a file
- */
-function testDownload(config) {
-    console.log('Lets run a test'.blue);
-    // this should be an out of the box file available on Dublin, Eureka, Fuji...
-    var testFile = path.join('script_includes', 'JSUtil.js'),
-        testFilePath = '';
-
-    for (var r in config.roots) {
-        testFilePath = path.join(r, testFile);
-        console.log('Creating test file: ' + testFilePath);
-        addFile(testFilePath);
-        break;
-    }
-
-}
 
 init();
