@@ -1,4 +1,4 @@
-# FileSync (2.1.0)
+# FileSync (2.2.0)
 
 ## Intro
 
@@ -214,6 +214,7 @@ Nice to haves
 - [ ] save meta data recieved in request for user info (eg, sys_updated_on, sys_updated_by, sys_mod_count, description)
 - [ ] config option to log details to log file (help others send log info)
 - [x] download records on startup provided by a list (See ```"preLoad"``` in app.config.json)
+- [ ] add windows support for fancy/OS style notifications
 
 
 ## Contributing workflow

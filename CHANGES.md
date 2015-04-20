@@ -1,5 +1,11 @@
 # FileSync Changes
 
+* 2015-04-13 (**Version 2.2.0**)
+ * Isolate file and record based functions in own Class
+ * Add tests for downloading and updating records
+ * Simplify function calling and add more call backs (to support testing).
+
+
 * 2015-04-13 (**Version 2.1.0**)
  * Rewrite pre-loading and re-syncing of files.
  * Clean up watching files system to be enabled and disabled at the right times and avoid file writes triggering watch changes.
