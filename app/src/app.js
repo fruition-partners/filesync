@@ -450,7 +450,7 @@ function addFile(file, stats, callback) {
     // default callback
     callback = callback || function (complete) {
         if (!complete) {
-            console.log('Could not add file:  ' + file).red);
+            console.log(('Could not add file:  ' + file).red);
         }
     };
 
