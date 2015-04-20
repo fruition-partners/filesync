@@ -1,6 +1,3 @@
-// Copyright (c) 2013 Fruition Partners, Inc.
-
-
 // ---------------------------------------------------
 // 3rd party modules
 
@@ -38,6 +35,8 @@ var syncDir = '.sync_data';
 
 var isMac = /^darwin/.test(process.platform);
 //var isWin = /^win/.test(process.platform);
+
+var testsRunning = false;
 
 var chokiWatcher = false,
     chokiWatcherReady = false;
@@ -80,7 +79,13 @@ function init() {
         }
         if (argv.test) {
             console.log('TEST MODE ACTIVATED'.green);
-            runTests({addFile: addFile}, config);
+            testsRunning = true;
+            runTests({
+                addFile: addFile,
+                getSncClient: getSncClient,
+                readFile: readFile,
+                send: send
+            }, config);
             return;
         }
 
@@ -275,7 +280,15 @@ function decrementQueue() {
     }
 }
 
-function receive(file, map) {
+function receive(file, allDoneCallBack) {
+    var map = fileRecords[file].getSyncMap();
+
+    if (config.debug) console.log('Adding:', {
+        file: file,
+        table: map.table,
+        field: map.field
+    });
+
     // we are about to download something!!
     queuedFile();
 
@@ -287,10 +300,18 @@ function receive(file, map) {
         query: map.key + '=' + map.keyValue
     };
 
+    // TODO : we can support downloading records with various queries
+    //    db = {
+    //        table: map.table,
+    //        field: map.field,
+    //        query: 'sys_created_by' + '=' + 'ben.yukich'
+    //    };
+
     snc.table(db.table).getRecords(db.query, function (err, obj) {
         if (err) {
             notifyUser(msgCodes.COMPLEX_ERROR);
             decrementQueue();
+            allDoneCallBack(false);
             return handleError(err, db);
         }
         if (obj.records.length === 0) {
@@ -300,6 +321,7 @@ function receive(file, map) {
                 field: map.field
             });
             decrementQueue();
+            allDoneCallBack(false);
             return console.log('No records found:'.yellow, db);
         }
 
@@ -314,7 +336,12 @@ function receive(file, map) {
         }
         console.log('Received:'.green, db);
 
-        return fs.outputFile(file, obj.records[0][db.field], function (err) {
+        //console.log('Record name: '+obj.records[0].name);
+        var objData = obj.records[0][db.field];
+        // TODO : use objName instead of file var.
+        var objName = obj.records[0].name;
+
+        return fs.outputFile(file, objData, function (err) {
             if (err) {
                 notifyUser(msgCodes.RECEIVED_FILE_ERROR, {
                     table: map.table,
@@ -336,28 +363,54 @@ function receive(file, map) {
                 file: file
             });
             decrementQueue();
+            allDoneCallBack(true);
         });
     });
 }
 
-function send(file, map) {
-    var snc = getSncClient(map.root);
-    var db = {
-        table: map.table,
-        field: map.field,
-        query: map.key + '=' + map.keyValue
-    };
-
+function readFile(file, callback) {
     fs.readFile(file, 'utf8', function (err, data) {
         if (err) {
             notifyUser(msgCodes.COMPLEX_ERROR);
+            console.log(('Error trying to read file: '.red) + file);
             return handleError(err, {
                 file: file
             });
+        } else {
+            callback(data);
+        }
+    });
+}
+
+function push(snc, file, db, map, body) {
+    snc.table(db.table).update(db.query, body, function (err, obj) {
+        if (err) {
+            notifyUser(msgCodes.UPLOAD_ERROR, {
+                file: map.keyValue
+            });
+            return handleError(err, db);
         }
 
-        var body = {};
-        body[db.field] = data;
+        // update hash for collision detection
+        fileRecords[file].saveHash(body[db.field]);
+        notifyUser(msgCodes.UPLOAD_COMPLETE, {
+            file: map.keyValue
+        });
+        console.log('Updated instance version:'.green, db);
+    });
+}
+
+function send(file) {
+
+    readFile(file, function (data) {
+
+        var map = fileRecords[file].getSyncMap();
+        var snc = getSncClient(map.root);
+        var db = {
+            table: map.table,
+            field: map.field,
+            query: map.key + '=' + map.keyValue
+        };
 
         // only allow an update if the instance is still in sync with the local env.
         instanceInSync(snc, db, map, file, data, function (err, obj) {
@@ -375,55 +428,43 @@ function send(file, map) {
                 return;
             }
 
-            snc.table(db.table).update(db.query, body, function (err, obj) {
-                if (err) {
-                    notifyUser(msgCodes.UPLOAD_ERROR, {
-                        file: map.keyValue
-                    });
-                    return handleError(err, db);
-                }
+            var body = {};
+            body[db.field] = data;
 
-                // update hash for collision detection
-                fileRecords[file].saveHash(data);
-                notifyUser(msgCodes.UPLOAD_COMPLETE, {
-                    file: map.keyValue
-                });
-                console.log('Updated instance version:'.green, db);
-            });
+            push(snc, file, db, map, body);
         });
     });
 }
 
-function addFile(file, stats) {
+function addFile(file, stats, callback) {
 
-    if(!trackFile(file)) return;
+    if (!trackFile(file)) return;
 
     stats = stats || false;
-    var map = fileRecords[file].getSyncMap();
 
     if (stats && stats.size > 0) {
         // these files can be ignored (we only process empty files)
         return;
     }
-    if (config.debug) console.log('Adding:', {
-        file: file,
-        table: map.table,
-        field: map.field
-    });
+
+    // default callback
+    callback = callback || function (complete) {
+        if (!complete) {
+            console.log('Could not add file:  ' + file).red);
+        }
+    };
 
     console.log('Syncing empty file from instance', file);
-    receive(file, map);
+    receive(file, callback);
 }
 
 function onChange(file, stats) {
-    var map = fileRecords[file].getSyncMap();
-
     if (stats.size > 0) {
         console.log('Potentially syncing changed file to instance', file);
-        send(file, map);
+        send(file);
     } else {
         console.log('Syncing empty file from instance', file);
-        receive(file, map);
+        receive(file, function (complete) {});
     }
 }
 
@@ -498,6 +539,10 @@ function instanceInSync(snc, db, map, file, newData, callback) {
 
 
 function watchFolders(config) {
+
+    // Watching folders will currently screw up our testing so don't do it when running tests.
+    if (testsRunning) return;
+
     console.log('*********** Watching for changes ***********'.green);
     var watchedFolders = Object.keys(config.roots);
     chokiWatcher = chokidar.watch(watchedFolders, {
