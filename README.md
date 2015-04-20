@@ -1,4 +1,4 @@
-# FileSync (2.2.0)
+# FileSync (2.2.1)
 
 ## Intro
 
