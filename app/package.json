@@ -10,8 +10,10 @@
     "fs-extra": "^0.16.5",
     "glob": "^5.0.3",
     "minimist": "^1.1.1",
+    "moment": "^2.10.2",
     "osx-notifier": "^0.2.1",
-    "restify": "^2.6.0"
+    "restify": "^2.6.0",
+    "winston": "^1.0.0"
   },
   "engines": {
     "node": ">=0.8"
