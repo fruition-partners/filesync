@@ -15,6 +15,7 @@ function FileRecord(config, file) {
     this.filePath = file;
     this.config = config;
     this.rootDir = this.getRoot();
+    this.errorList = [];
 }
 
 
@@ -31,16 +32,18 @@ function getHashFileLocation(rootDir, filePath) {
 
 method.getLocalHash = function () {
     var hashFile = getHashFileLocation(this.rootDir, this.filePath);
-    var fContents = '';
+    var fContents = '',
+        syncHash = '';
     try {
         fContents = fs.readFileSync(hashFile, 'utf8');
         var metaObj = JSON.parse(fContents);
-        fContents = metaObj.syncHash;
+        syncHash = metaObj.syncHash;
     } catch (err) {
-        // don't care.
-        console.log('--------- data file not yet existing ---------------'.red);
+        // don't care. (the calling function will then fail the sync check as desired)
+        console.log('--------- sync data file not yet existing ---------------'.red);
+        console.log('File in question: ' + hashFile);
     }
-    return fContents;
+    return syncHash;
 };
 
 function makeHash(data) {
@@ -73,9 +76,9 @@ method.getMeta = function () {
 };
 
 
-method.getRoot = function() {
+method.getRoot = function () {
     // cache
-    if(this.rootDir) return this.rootDir;
+    if (this.rootDir) return this.rootDir;
 
     var root = path.dirname(this.filePath);
     while (!this.config.roots[root]) {
@@ -103,7 +106,7 @@ function getFieldMap(filename, map) {
 }
 
 
-method.getSyncMap = function() {
+method.getSyncMap = function () {
     var folder = path.basename(path.dirname(this.filePath));
 
     // validate parent folder is mapped
@@ -121,8 +124,17 @@ method.getSyncMap = function() {
     return map;
 };
 
-method.validFile = function() {
+method.validFile = function () {
     return this.getSyncMap();
+};
+method.errors = function () {
+    if (this.errorList.length > 0) {
+        return this.errorList;
+    }
+    return false;
+};
+method.addError = function (str) {
+    this.errorList.push(str);
 };
 
 module.exports = {

@@ -1,5 +1,8 @@
 # FileSync Changes
 
+* 2015-05-01 (**Version 2.2.3**)
+ * FIX issue where incorrect file names created by user caused an endless record lookup loop
+
 * 2015-04-13 (**Version 2.2.0**)
  * Isolate file and record based functions in own Class
  * Add tests for downloading and updating records

@@ -315,6 +315,9 @@ function receive(file, allDoneCallBack) {
             return handleError(err, db);
         }
         if (obj.records.length === 0) {
+            console.log('No records found:'.yellow, db);
+            fileRecords[file].addError("No records found");
+
             notifyUser(msgCodes.RECORD_NOT_FOUND, {
                 table: map.table,
                 file: map.keyValue,
@@ -322,7 +325,7 @@ function receive(file, allDoneCallBack) {
             });
             decrementQueue();
             allDoneCallBack(false);
-            return console.log('No records found:'.yellow, db);
+            return;
         }
 
         if (obj.records[0][db.field].length < 1) {
@@ -459,6 +462,9 @@ function addFile(file, stats, callback) {
 }
 
 function onChange(file, stats) {
+    if (fileHasErrors(file)) {
+        return false;
+    }
     if (stats.size > 0) {
         console.log('Potentially syncing changed file to instance', file);
         send(file);
@@ -468,16 +474,36 @@ function onChange(file, stats) {
     }
 }
 
+function fileHasErrors(file) {
+    var f = fileRecords[file];
+    var errors = f.errors();
+    if (errors) {
+        console.log('This file (' + file + ') failed to work for us previously. Skipping it. Previous errors on file/record: ', errors);
+        return true;
+    }
+    return false;
+}
+
 /*
  * Track this file in our fileRecords list.
- * Return the file or undefined if not valid/existing
+ * Return the file or false if not valid
  */
 function trackFile(file) {
-    var f = new FileRecord(config, file);
-    if (f.validFile() && !fileRecords[file]) {
-        fileRecords[file] = f;
+
+    var f = fileRecords[file] ? fileRecords[file] : false;
+    // existing, check for errors
+    if (f && fileHasErrors(file)) {
+        return false; // can't process
+    } else {
+        // new, check if valid
+        f = new FileRecord(config, file);
+        if (f.validFile()) {
+            fileRecords[file] = f;
+        } else {
+            return false; // not valid in terms of mapped files in config
+        }
     }
-    return fileRecords[file];
+    return f;
 }
 
 /* This first gets the remote record and compares with the previous
@@ -551,9 +577,11 @@ function watchFolders(config) {
             ignored: ["**/.*"] // ignore hidden files/dirs
         })
         .on('add', function (file, stats) {
-            trackFile(file);
+
             if (chokiWatcherReady) {
                 addFile(file, stats);
+            } else {
+                trackFile(file);
             }
         })
         .on('change', onChange)
