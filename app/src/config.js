@@ -20,7 +20,8 @@ var DEFAULT_CONFIG_FILE = path.join('..', 'app.config.json');
 var CONFIG_RECORDS = path.join('..', 'src', 'records.config.json');
 
 function saveConfig(config) {
-    fs.writeFile(path.join(__dirname, config_file), JSON.stringify(config, null, 4), function (err) {
+    fs.writeFile(config_file, JSON.stringify(config, null, 4), function (err) {
+        if (err) console.log('Error updating/writing config file. path: ' + config_file);
         assert.ifError(err);
     });
 }
@@ -62,10 +63,10 @@ function _getHomeDir() {
 function loadFolders(config) {
     var confRecords = require(CONFIG_RECORDS);
     // if true in the app.config.json file then we won't load our default folders
-    if(!config.ignoreDefaultFolders) {
+    if (!config.ignoreDefaultFolders) {
 
         // config.folders can extend/overwrite confRecords.folders if provided
-        if(config.folders) {
+        if (config.folders) {
             config.folders = extend(confRecords.folders, config.folders);
         } else {
             config.folders = confRecords.folders;
@@ -143,7 +144,7 @@ function logConfig(config) {
     });
     console.log('');
 
-    if(config.debug) {
+    if (config.debug) {
         console.log(JSON.stringify(config));
     }
 }

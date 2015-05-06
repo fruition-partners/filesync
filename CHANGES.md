@@ -1,5 +1,8 @@
 # FileSync Changes
 
+* 2015-05-06 (**Version 2.2.4**)
+ * FIX issue where config files existing on a custom path could not be updated for first-run scenarios.
+
 * 2015-05-01 (**Version 2.2.3**)
  * FIX issue where incorrect file names created by user caused an endless record lookup loop
 
