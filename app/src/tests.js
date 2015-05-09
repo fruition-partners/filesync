@@ -1,8 +1,16 @@
-var path = require('path');
+var path = require('path'),
+    moment = require('moment');
 
 var api,
     config,
     logger;
+
+var testFile = {
+    name: 'JSUtil',
+    suffix: 'js',
+    folder: 'script_includes',
+    table: 'sys_script_include'
+}
 
 function runTests(apiObj, configObj) {
     api = apiObj;
@@ -30,14 +38,21 @@ function runTests(apiObj, configObj) {
         }
     }
 
+    logger.test('Test file in use:', testFile);
+
     // start tests
     nextTest = testQueue.shift();
     nextTest(testDone);
 }
 
-function getTestFile(callback) {
+function getTestFilePath() {
     // this should be an out of the box file available on Dublin, Eureka, Fuji...
-    var testFilePath = path.join(getRoot(), 'script_includes', 'JSUtil.js');
+    var testFilePath = path.join(getRoot(), testFile.folder, testFile.name + '.' + testFile.suffix);
+    return testFilePath;
+}
+
+function getTestFile(callback) {
+    var testFilePath = getTestFilePath();
 
     logger.test('Creating test file: ' + testFilePath);
     api.addFile(testFilePath, false, callback);
@@ -84,17 +99,16 @@ function testUpdateRecord(callback) {
 
     logger.test('TEST RUNNING: testUpdateRecord()'.yellow);
     var snc = api.getSncClient(getRoot());
-    var file = path.join(getRoot(), 'script_includes', 'JSUtil.js');
+    var file = getTestFilePath();
 
-    // TODO use time stamp to make unique
-    var uniqueString = "FileSync test data xxxx";
+    var uniqueString = 'FileSync test (' + moment().format('x') + ')';
 
     api.readFile(file, function (data) {
         var body = {
             'script': data + "\n// " + uniqueString
         };
 
-        saveFile(snc, 'sys_script_include', 'name=JSUtil', body, recordSaved);
+        saveFile(snc, testFile.table, 'name=' + testFile.name, body, recordSaved);
     });
 
     function recordSaved(complete) {
@@ -126,7 +140,7 @@ function testUpdateRecord(callback) {
  * Tests trying to upload a record that has already been changed on the server
  */
 function testSyncConflict(callback) {
-    var file = path.join(getRoot(), 'script_includes', 'JSUtil.js');
+    var file = getTestFilePath();
 
     //api.send(file);
 }
