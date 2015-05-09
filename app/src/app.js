@@ -11,6 +11,8 @@ var path = require('path');
 // used to generate a hash of a file
 var crypto = require('crypto');
 var glob = require("glob");
+var winston = require('winston');
+var moment = require('moment');
 
 // ---------------------------------------------------
 // custom imports
@@ -23,6 +25,9 @@ var config = require('./config'),
     FileRecord = FileRecordUtil.FileRecord,
     makeHash = FileRecordUtil.makeHash;
 
+// our wrapper for winston used for logging
+var logit = {};
+
 // custom vars
 var notifyObj = notify();
 var notifyUserMsg = notifyObj.msg,
@@ -30,8 +35,6 @@ var notifyUserMsg = notifyObj.msg,
     // list of supported notification messages defined in notify.js
     msgCodes = notifyObj.codes;
 
-// a directory to store hash information used to detect remote changes to records before trying to overwrite them
-var syncDir = '.sync_data';
 
 var isMac = /^darwin/.test(process.platform);
 //var isWin = /^win/.test(process.platform);
@@ -49,7 +52,6 @@ var fileRecords = {};
 
 // ---------------------------------------------------
 
-
 // entry point
 function init() {
 
@@ -64,9 +66,12 @@ function init() {
         config.setConfigLocation(argv.config);
         config = config.getConfig();
     } catch (e) {
-        console.error('Configuration error:'.red, e.message);
+        winston.error('Configuration error:'.red, e.message);
         process.exit(1);
     }
+
+    //config.debug = true;
+    setupLogging();
 
     if (config.debug) {
         notifyObj.setDebug();
@@ -74,11 +79,11 @@ function init() {
 
     function start(upgradeBlocks) {
         if (upgradeBlocks) {
-            console.error('Upgrade is needed. Please check the Readme/change log online.'.red);
+            logit.error('Upgrade is needed. Please check the Readme/change log online.'.red);
             process.exit(1);
         }
         if (argv.test) {
-            console.log('TEST MODE ACTIVATED'.green);
+            logit.info('TEST MODE ACTIVATED'.green);
             testsRunning = true;
             runTests({
                 addFile: addFile,
@@ -94,14 +99,14 @@ function init() {
         }
         // pre add some files defined per root in config
         if (config.preLoad) {
-            addConfigFiles(config);
+            addConfigFiles();
         }
 
         // callback dependency
         if (argv.resync || config._resyncFiles) {
             // retest this!
             config._resyncFiles = true;
-            resyncExistingFiles(config);
+            resyncExistingFiles();
         }
 
         initComplete();
@@ -113,8 +118,8 @@ function init() {
             // the download queue is cleared
             return;
         }
-        console.log('[INIT] initComplete.. starting watcher..');
-        watchFolders(config);
+        logit.log('initComplete.. starting watcher..');
+        watchFolders();
     }
 
     upgradeNeeded(config, start);
@@ -125,7 +130,7 @@ function init() {
  * Get a list of all the files and add it to "filesToPreLoad"
  */
 
-function resyncExistingFiles(config) {
+function resyncExistingFiles() {
     var watchedFolders = Object.keys(config.roots);
     var roots = [];
     for (var i = 0; i < watchedFolders.length; i++) {
@@ -141,16 +146,16 @@ function resyncExistingFiles(config) {
     glob(pattern, {
         nodir: true
     }, function (err, files) {
-        if (err) console.log(err);
+        if (err) logit.error('Exception:', err);
 
         if (files.length === 0) {
-            console.log('No files found to resync'.red);
-            watchFolders(config);
+            logit.info('No files found to resync'.red);
+            watchFolders();
         }
 
         // files is an array of filenames.
         for (var x in files) {
-            //console.log(('Adding file: '+files[x]).blueBG);
+            //logit.info(('Adding file: '+files[x]).blueBG);
             addToPreLoadList(files[x], {
                 filePath: files[x]
             });
@@ -167,7 +172,7 @@ function notifyUser(code, args) {
     }
 }
 
-function addConfigFiles(config) {
+function addConfigFiles() {
     var filesToGet = 0;
     // each root
     for (var r in config.roots) {
@@ -187,7 +192,7 @@ function addConfigFiles(config) {
             }
         }
     }
-    console.log(('Downloading ' + filesToGet + ' files...').green + '(disable this by setting preLoad to false in your config file.)');
+    logit.log(('Downloading ' + filesToGet + ' files...').green + '(disable this by setting preLoad to false in your config file.)');
 }
 
 function addToPreLoadList(filePath, options) {
@@ -224,17 +229,18 @@ function displayHelp() {
 }
 
 function handleError(err, context) {
-    console.error('Error:'.red, err);
+    logit.error(err);
     if (context) {
-        console.error('  context:'.red, context);
+        logit.error('  context:', context);
     }
 }
 
 function getSncClient(root) {
     var host = config.roots[root];
     if (!host._client) {
-        host._client = sncClient(host);
+        host._logger = logit;
         host.debug = config.debug;
+        host._client = sncClient(host);
     }
     return host._client;
 }
@@ -244,12 +250,12 @@ function getSncClient(root) {
  */
 function queuedFile() {
     if (chokiWatcher) {
-        //console.log('*********** Killed watch *********** '.green);
+        //logit.info('*********** Killed watch *********** '.green);
         chokiWatcher.close();
         chokiWatcher = false;
     }
     filesInQueueToDownload++;
-    console.log(('Files left in queue: ' + filesInQueueToDownload).redBG);
+    logit.info(('Files left in queue: ' + filesInQueueToDownload).redBG);
 
     // more than 2 files in the queue? Lets disable notify to avoid the ulimit issue
     if (filesInQueueToDownload > 2) {
@@ -263,7 +269,7 @@ function queuedFile() {
  */
 function decrementQueue() {
     filesInQueueToDownload--;
-    console.log(('Files left in queue: ' + filesInQueueToDownload).blueBG);
+    logit.info(('Files left in queue: ' + filesInQueueToDownload).blueBG);
     if (filesInQueueToDownload === 0) {
         // restart watch
         if (!notifyEnabled) {
@@ -274,7 +280,7 @@ function decrementQueue() {
             // do not start watching folders straight away as there may be IO streams
             // being closed which will cause a "change" event for chokidar on the file.
             setTimeout(function () {
-                watchFolders(config);
+                watchFolders();
             }, 200); // delay for 200 milliseconds to be sure that chokidar won't freak out!
         }
     }
@@ -283,7 +289,7 @@ function decrementQueue() {
 function receive(file, allDoneCallBack) {
     var map = fileRecords[file].getSyncMap();
 
-    if (config.debug) console.log('Adding:', {
+    logit.debug('Adding:', {
         file: file,
         table: map.table,
         field: map.field
@@ -315,7 +321,7 @@ function receive(file, allDoneCallBack) {
             return handleError(err, db);
         }
         if (obj.records.length === 0) {
-            console.log('No records found:'.yellow, db);
+            logit.info('No records found:'.yellow, db);
             fileRecords[file].addError("No records found");
 
             notifyUser(msgCodes.RECORD_NOT_FOUND, {
@@ -329,7 +335,7 @@ function receive(file, allDoneCallBack) {
         }
 
         if (obj.records[0][db.field].length < 1) {
-            console.log('**WARNING : this record is 0 bytes'.red);
+            logit.info('**WARNING : this record is 0 bytes'.red);
 
             notifyUser(msgCodes.RECEIVED_FILE_0_BYTES, {
                 table: map.table,
@@ -337,9 +343,9 @@ function receive(file, allDoneCallBack) {
                 field: map.field
             });
         }
-        console.log('Received:'.green, db);
+        logit.info('Received:'.green, db);
 
-        //console.log('Record name: '+obj.records[0].name);
+        //logit.info('Record name: '+obj.records[0].name);
         var objData = obj.records[0][db.field];
         // TODO : use objName instead of file var.
         var objName = obj.records[0].name;
@@ -362,7 +368,7 @@ function receive(file, allDoneCallBack) {
                 field: map.field
             });
 
-            console.log('Saved:'.green, {
+            logit.info('Saved:'.green, {
                 file: file
             });
             decrementQueue();
@@ -375,7 +381,7 @@ function readFile(file, callback) {
     fs.readFile(file, 'utf8', function (err, data) {
         if (err) {
             notifyUser(msgCodes.COMPLEX_ERROR);
-            console.log(('Error trying to read file: '.red) + file);
+            logit.info(('Error trying to read file: '.red) + file);
             return handleError(err, {
                 file: file
             });
@@ -399,7 +405,7 @@ function push(snc, file, db, map, body) {
         notifyUser(msgCodes.UPLOAD_COMPLETE, {
             file: map.keyValue
         });
-        console.log('Updated instance version:'.green, db);
+        logit.info('Updated instance version:', db);
     });
 }
 
@@ -427,7 +433,7 @@ function send(file) {
                 return;
             }
             if (obj.noPushNeeded) {
-                console.log('Local has no changes or remote in sync; no need for push/send.');
+                logit.info('Local has no changes or remote in sync; no need for push/send.');
                 return;
             }
 
@@ -453,11 +459,11 @@ function addFile(file, stats, callback) {
     // default callback
     callback = callback || function (complete) {
         if (!complete) {
-            console.log(('Could not add file:  ' + file).red);
+            logit.info(('Could not add file:  ' + file).red);
         }
     };
 
-    console.log('Syncing empty file from instance', file);
+    logit.info('Syncing empty file from instance', file);
     receive(file, callback);
 }
 
@@ -466,10 +472,10 @@ function onChange(file, stats) {
         return false;
     }
     if (stats.size > 0) {
-        console.log('Potentially syncing changed file to instance', file);
+        logit.info('Potentially syncing changed file to instance', file);
         send(file);
     } else {
-        console.log('Syncing empty file from instance', file);
+        logit.info('Syncing empty file from instance', file);
         receive(file, function (complete) {});
     }
 }
@@ -478,7 +484,7 @@ function fileHasErrors(file) {
     var f = fileRecords[file];
     var errors = f.errors();
     if (errors) {
-        console.log('This file (' + file + ') failed to work for us previously. Skipping it. Previous errors on file/record: ', errors);
+        logit.info('This file (' + file + ') failed to work for us previously. Skipping it. Previous errors on file/record: ', errors);
         return true;
     }
     return false;
@@ -522,7 +528,7 @@ function instanceInSync(snc, db, map, file, newData, callback) {
         return; // no changes
     }
 
-    console.log('Comparing remote version with previous local version...');
+    logit.info('Comparing remote version with previous local version...');
     // TODO : duplicate code here
     snc.table(db.table).getRecords(db.query, function (err, obj) {
         if (err) {
@@ -530,15 +536,16 @@ function instanceInSync(snc, db, map, file, newData, callback) {
             return handleError(err, db);
         }
         if (obj.records.length === 0) {
+            logit.info('No records found:'.yellow, db);
             notifyUser(msgCodes.RECORD_NOT_FOUND, {
                 table: map.table,
                 file: map.keyValue,
                 field: map.field
             });
-            return console.log('No records found:'.yellow, db);
+            return;
         }
 
-        console.log('Received:'.green, db);
+        logit.info('Received:'.green, db);
         var remoteVersion = obj.records[0][db.field];
         var remoteHash = makeHash(remoteVersion);
 
@@ -564,12 +571,12 @@ function instanceInSync(snc, db, map, file, newData, callback) {
 }
 
 
-function watchFolders(config) {
+function watchFolders() {
 
     // Watching folders will currently screw up our testing so don't do it when running tests.
     if (testsRunning) return;
 
-    console.log('*********** Watching for changes ***********'.green);
+    logit.info('*********** Watching for changes ***********'.green);
     var watchedFolders = Object.keys(config.roots);
     chokiWatcher = chokidar.watch(watchedFolders, {
             persistent: true,
@@ -589,10 +596,10 @@ function watchFolders(config) {
             chokiWatcherReady = true;
         })
         .on('error', function (error) {
-            console.error('Error watching files: %s'.red, error);
+            logit.error('Error watching files: %s'.red, error);
         });
     // TODO : clear up old hash files when files removed..
-    // .on('unlink', function(path) {console.log('File', path, 'has been removed');})
+    // .on('unlink', function(path) {logit.info('File', path, 'has been removed');})
 }
 
 // for each root create the folders because we are lazy ppl
@@ -603,7 +610,7 @@ function setupFolders(config, callback) {
     dirsExpected = Object.keys(config.roots).length * Object.keys(config.folders).length;
 
     function dirError(err) {
-        if (err) console.log(err);
+        if (err) logit.info(err);
         dirsCreated++;
         if (dirsCreated >= dirsExpected) {
             // we are done creating all the folders
@@ -613,13 +620,55 @@ function setupFolders(config, callback) {
 
     // for each root create our dirs
     for (var r in config.roots) {
-        //console.log('found r: '+r);
+        //logit.info('found r: '+r);
         for (var f in config.folders) {
             var newDir = path.join(r, f);
             fs.ensureDir(newDir, dirError);
         }
     }
 }
+
+/*
+ * @debug Bool : true to set log level to (include) debug
+ */
+function setupLogging() {
+    var logger = new(winston.Logger)({
+        transports: [
+        new(winston.transports.Console)({
+                timestamp: function () {
+                    return moment().format("HH:mm:ss");
+                    //return moment().format("YY-MM-DD HH:mm:ss");
+                    //return Date.now();
+                },
+                colorize: true,
+                prettyPrint: true
+            })
+    ]
+    });
+
+    // support easier debugging of tests
+    logit.test = function() {
+        //arguments;
+        console.log('...............');
+        if(typeof arguments[0] == 'string') {
+            this.info(arguments[0].underline);
+        } else {
+            this.info(arguments[0]);
+        }
+        for(var i=1; i< arguments.length; i++) {
+            this.info(' - ', arguments[i]);
+        }
+        console.log('...............');
+    };
+
+    logger.extend(logit);
+
+    if(config.debug) {
+        logger.level = 'debug';
+    }
+    config._logger = logit;
+}
+
 
 
 init();

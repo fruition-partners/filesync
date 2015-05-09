@@ -5,11 +5,25 @@ var restify = require('restify');
 var url = require('url');
 var util = require('util');
 
+var logger = false;
+
 // testing
 // https.globalAgent.options.secureProtocol = 'SSLv3_method';
 
 function sncClient(config) {
     var debug = config.debug;
+    // ideally we use a kick ass logger passed in via config.
+    logger = config._logger ? config._logger : {
+        debug: function () {
+            console.log('please define your debugger (winston)');
+        },
+        info: function () {
+            console.log('please define your debugger (winston)');
+        },
+        error: function () {
+            console.log('please define your debugger (winston)');
+        }
+    };
     var auth = new Buffer(config.auth, 'base64').toString(),
         parts = auth.split(':'),
         user = parts[0],
@@ -25,8 +39,7 @@ function sncClient(config) {
         });
         client.basicAuth(user, pass);
     } catch (err) {
-        console.log('Some error happend');
-        console.dir(err);
+        logger.error('Some error happend', err);
     }
 
     function table(tableName) {
@@ -34,7 +47,7 @@ function sncClient(config) {
         function validateResponse(err, req, res, obj, request) {
 
             // consider moving low level debug to high level debug (end user as below)
-            if (debug) logResponse(err, req, res, obj, request);
+            logResponse(err, req, res, obj, request);
 
             var help = '';
             // special failing case (connections blocked etc.)
@@ -48,7 +61,7 @@ function sncClient(config) {
 
                 help = errorList[err.code] || 'Something failed badly.. internet connection rubbish?';
                 help += util.format('\ndetails: %j', err);
-                console.log(help);
+                logger.warn(help);
                 return new Error(help);
             }
 
@@ -66,7 +79,7 @@ function sncClient(config) {
                 return err;
             }
             if (obj.error) {
-                if (debug) console.log('ERROR found in obj.error : ' + obj.error);
+                logger.error('ERROR found in obj.error : ', obj.error);
                 // DP TODO : Investigate: Error: json object is null
                 //return new Error(obj.error);
                 // this is actually not an error! It's just that the server didn't return anything to us
@@ -80,15 +93,15 @@ function sncClient(config) {
 
         function logResponse(err, req, res, obj, request) {
             var resCode = res ? res.statusCode : 'no response';
-            console.log('-------------------------------------------------------');
-            console.log('HTTP ' + req.method + ':', client.url.host, req.path,
+            logger.debug('-------------------------------------------------------');
+            logger.debug('HTTP ' + req.method + ':', client.url.host, req.path,
                 '\nrequest:', request.postObj || '',
                 '\nresponse:', util.inspect({
                     statusCode: resCode,
                     body: obj
                 }, true, 10)
             );
-            console.log('-------------------------------------------------------');
+            logger.debug('-------------------------------------------------------');
         }
 
         function send(request) {
@@ -118,8 +131,7 @@ function sncClient(config) {
                     client.get(path, handleResponse);
                 }
             } catch (err) {
-                console.log('Some connection error happend...');
-                console.dir(err);
+                logger.error('Some connection error happend...', error);
                 // fail hard!
                 process.exit(1);
             }
@@ -146,7 +158,7 @@ function sncClient(config) {
         }
 
         function insert(obj, callback) {
-            console.log('DP TODO : insert not yet tested nor supported!');
+            logger.warn('DP TODO : insert not yet tested nor supported!');
             //send({table: tableName, action: 'insert', postObj: obj, callback: callback});
         }
 

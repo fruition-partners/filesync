@@ -11,16 +11,16 @@ var method = FileRecord.prototype,
     syncDir = '.sync_data';
 
 function FileRecord(config, file) {
-    //console.log('Added file: ' + file);
     this.filePath = file;
     this.config = config;
     this.rootDir = this.getRoot();
     this.errorList = [];
+    this.logger = config._logger;
 }
 
 
 method.debug = function () {
-    console.log(('filePath: ' + this.filePath).green);
+    this.logger.info(('filePath: ' + this.filePath).green);
 
 };
 
@@ -40,8 +40,8 @@ method.getLocalHash = function () {
         syncHash = metaObj.syncHash;
     } catch (err) {
         // don't care. (the calling function will then fail the sync check as desired)
-        console.log('--------- sync data file not yet existing ---------------'.red);
-        console.log('File in question: ' + hashFile);
+        this.logger.warn('--------- sync data file not yet existing ---------------'.red);
+        this.logger.warn('File in question: ' + hashFile);
     }
     return syncHash;
 };
@@ -52,9 +52,7 @@ function makeHash(data) {
 }
 
 method.saveHash = function (data) {
-    if (this.config.debug) {
-        console.log('Saving meta/hash data for file: ' + this.filePath);
-    }
+    this.logger.debug('Saving meta/hash data for file: ' + this.filePath);
     var hash = makeHash(data);
     // todo : save more useful meta data.
     var metaData = {
@@ -65,13 +63,13 @@ method.saveHash = function (data) {
     var outputString = JSON.stringify(metaData);
     fs.outputFile(dataFile, outputString, function (err) {
         if (err) {
-            console.log('Could not write out meta file'.red, dataFile);
+            this.logger.error('Could not write out meta file'.red, dataFile);
         }
     });
 };
 
 method.getMeta = function () {
-    console.log('got meta');
+    this.logger.log('got meta');
     return {};
 };
 

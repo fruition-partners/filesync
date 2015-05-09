@@ -1,11 +1,13 @@
 var path = require('path');
 
 var api,
-    config;
+    config,
+    logger;
 
 function runTests(apiObj, configObj) {
     api = apiObj;
     config = configObj;
+    logger = configObj._logger;
     var testQueue = [];
     testQueue.push(testDownload);
     testQueue.push(testUpdateRecord);
@@ -19,11 +21,11 @@ function runTests(apiObj, configObj) {
             if (nextTest) {
                 nextTest(testDone);
             } else {
-                console.log("Testing Complete.".green);
+                logger.test("Testing Complete.".green);
                 process.exit(1);
             }
         } else {
-            console.log("TESTS FAILED. Stopping tests.");
+            logger.test("TESTS FAILED. Stopping tests.");
             process.exit(1);
         }
     }
@@ -37,7 +39,7 @@ function getTestFile(callback) {
     // this should be an out of the box file available on Dublin, Eureka, Fuji...
     var testFilePath = path.join(getRoot(), 'script_includes', 'JSUtil.js');
 
-    console.log('Creating test file: ' + testFilePath);
+    logger.test('Creating test file: ' + testFilePath);
     api.addFile(testFilePath, false, callback);
 }
 
@@ -50,24 +52,24 @@ function getRoot() {
  * Calls addFile to download a record
  */
 function testDownload(callback) {
-    console.log('TEST RUNNING: testDownload()'.yellow);
+    logger.test('TEST RUNNING: testDownload()'.yellow);
     getTestFile(fileAdded);
 
     function fileAdded(complete) {
         if (complete) {
-            console.log('[PASS]:'.green + ' testDownload()');
+            logger.test('[PASS]:'.green + ' testDownload()');
         } else {
-            console.log('[FAIL]:'.red + ' testDownload()');
+            logger.test('[FAIL]:'.red + ' testDownload()');
         }
         callback(complete);
     }
 }
 
 function saveFile(snc, table, query, body, callback) {
-    console.log('Attempting record update: ' + [table, query, body].join(', '));
+    logger.test('Attempting record update:', table, query);
     snc.table(table).update(query, body, function (err, obj) {
         if (err) {
-            console.log('Could not save record'.red);
+            logger.test('Could not save record'.red);
             callback(false);
             return;
         }
@@ -80,7 +82,7 @@ function saveFile(snc, table, query, body, callback) {
  */
 function testUpdateRecord(callback) {
 
-    console.log('TEST RUNNING: testUpdateRecord()'.yellow);
+    logger.test('TEST RUNNING: testUpdateRecord()'.yellow);
     var snc = api.getSncClient(getRoot());
     var file = path.join(getRoot(), 'script_includes', 'JSUtil.js');
 
@@ -99,7 +101,7 @@ function testUpdateRecord(callback) {
         if (complete) {
             confirmFile(file, uniqueString);
         } else {
-            console.log('[FAIL]:'.red + ' testUpdateRecord()');
+            logger.test('[FAIL]:'.red + ' testUpdateRecord()');
             callback(false);
         }
     }
@@ -109,10 +111,10 @@ function testUpdateRecord(callback) {
             api.readFile(file, function (data) {
                 // check if file contains unique content
                 if (data.indexOf(subString) >= 0) {
-                    console.log('[PASS]:'.green + ' testUpdateRecord()');
+                    logger.test('[PASS]:'.green + ' testUpdateRecord()');
                     callback(true);
                 } else {
-                    console.log('[FAIL]:'.red + ' testUpdateRecord() - file downloaded is not what was pushed');
+                    logger.test('[FAIL]:'.red + ' testUpdateRecord() - file downloaded is not what was pushed');
                     callback(false);
                 }
             });

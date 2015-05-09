@@ -1,5 +1,8 @@
 # FileSync Changes
 
+* 2015-05-09 (**Version 2.3.0**)
+ * Improved logging (timestamps and proper info/warn/error usage via winston)
+
 * 2015-05-06 (**Version 2.2.4**)
  * FIX issue where config files existing on a custom path could not be updated for first-run scenarios.
 
