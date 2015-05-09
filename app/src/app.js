@@ -89,6 +89,7 @@ function init() {
                 addFile: addFile,
                 getSncClient: getSncClient,
                 readFile: readFile,
+                writeFile: writeFile,
                 send: send
             }, config);
             return;
@@ -350,39 +351,50 @@ function receive(file, allDoneCallBack) {
         // TODO : use objName instead of file var.
         var objName = obj.records[0].name;
 
-        return fs.outputFile(file, objData, function (err) {
-            if (err) {
+        writeFile(file, objData, function (complete) {
+            if (!complete) {
                 notifyUser(msgCodes.RECEIVED_FILE_ERROR, {
                     table: map.table,
                     file: map.keyValue,
                     field: map.field
                 });
-                return handleError(err, file);
+
+            } else {
+                // write out hash for collision detection
+                fileRecords[file].saveHash(obj.records[0][db.field]);
+                notifyUser(msgCodes.RECEIVED_FILE, {
+                    table: map.table,
+                    file: map.keyValue,
+                    field: map.field
+                });
+
+                logit.info('Saved:'.green, file);
             }
 
-            // write out hash for collision detection
-            fileRecords[file].saveHash(obj.records[0][db.field]);
-            notifyUser(msgCodes.RECEIVED_FILE, {
-                table: map.table,
-                file: map.keyValue,
-                field: map.field
-            });
-
-            logit.info('Saved:'.green, {
-                file: file
-            });
             decrementQueue();
-            allDoneCallBack(true);
+            allDoneCallBack(complete);
         });
     });
 }
 
+function writeFile(file, data, callback) {
+    fs.outputFile(file, data, function (err) {
+        if (err) {
+            handleError(err, file);
+            callback(false);
+            return;
+        }
+        callback(true);
+    });
+}
+
+// it is expected that the file always exists (otherwise die hard)
 function readFile(file, callback) {
     fs.readFile(file, 'utf8', function (err, data) {
         if (err) {
             notifyUser(msgCodes.COMPLEX_ERROR);
             logit.info(('Error trying to read file: '.red) + file);
-            return handleError(err, {
+            handleError(err, {
                 file: file
             });
         } else {
@@ -391,26 +403,27 @@ function readFile(file, callback) {
     });
 }
 
-function push(snc, file, db, map, body) {
+// push some data to overwrite an instance record
+function push(snc, file, db, map, body, callback) {
     snc.table(db.table).update(db.query, body, function (err, obj) {
         if (err) {
-            notifyUser(msgCodes.UPLOAD_ERROR, {
-                file: map.keyValue
-            });
-            return handleError(err, db);
+            handleError(err, db);
+            callback(false);
+            return;
         }
 
-        // update hash for collision detection
-        fileRecords[file].saveHash(body[db.field]);
-        notifyUser(msgCodes.UPLOAD_COMPLETE, {
-            file: map.keyValue
-        });
-        logit.info('Updated instance version:', db);
+        callback(true);
     });
 }
 
-function send(file) {
+function send(file, callback) {
 
+    // default callback
+    callback = callback || function (complete) {
+        if (!complete) {
+            logit.error(('Could not send file:  ' + file).red);
+        }
+    };
     readFile(file, function (data) {
 
         var map = fileRecords[file].getSyncMap();
@@ -430,17 +443,35 @@ function send(file) {
                     file: map.keyValue,
                     field: map.field
                 });
+                logit.warn('Instance record is not in sync with local env ("%s").', map.keyValue);
+                callback(false);
                 return;
             }
             if (obj.noPushNeeded) {
                 logit.info('Local has no changes or remote in sync; no need for push/send.');
+                callback(true);
                 return;
             }
 
             var body = {};
             body[db.field] = data;
 
-            push(snc, file, db, map, body);
+            logit.info('Updating instance version ("%s").', map.keyValue);
+            push(snc, file, db, map, body, function (complete) {
+                if (complete) {
+                    // update hash for collision detection
+                    fileRecords[file].saveHash(data);
+                    notifyUser(msgCodes.UPLOAD_COMPLETE, {
+                        file: map.keyValue
+                    });
+                    logit.info('Updated instance version:', db);
+                } else {
+                    notifyUser(msgCodes.UPLOAD_ERROR, {
+                        file: map.keyValue
+                    });
+                }
+                callback(complete);
+            });
         });
     });
 }
@@ -512,8 +543,21 @@ function trackFile(file) {
     return f;
 }
 
-/* This first gets the remote record and compares with the previous
- * downloaded version. If the same then allow upload (ob.inSync is true).
+/*
+ * Check if the server record has changed AND is different than our local version.
+ *
+ * Cases:
+ *  1. computed hash of the file before and after is the same                  = PASS
+ *  2. hash of the remote record and local file are the same                   = PASS
+ *  3. hash of the previous downloaded file and the remote record are the same = PASS
+ *     (nobody has worked on the server record)
+ *
+ *  All other scenarios are considered a FAIL meaning that the instance version is
+ *  not in sync with the local version.
+ *
+ * If file and record are in sync then inSync is true.
+ * If case 3 then noPushNeeded is false to signify that the remote version can
+ * be updated.
  */
 function instanceInSync(snc, db, map, file, newData, callback) {
 
@@ -549,10 +593,10 @@ function instanceInSync(snc, db, map, file, newData, callback) {
         var remoteVersion = obj.records[0][db.field];
         var remoteHash = makeHash(remoteVersion);
 
-        obj.inSync = false; // adding property. default to false
+        obj.inSync = false; // default to false to assume not in sync (safety first!)
         obj.noPushNeeded = false; // default to false to assume we must upload
 
-        // case 1. Records local and remote are the same
+        // CASE 1. Records local and remote are the same
         if (newDataHash == remoteHash) {
             // handle the scenario where the remote version was changed to match the local version.
             // when this happens update the local hash as there would be no collision here (and nothing to push!)
@@ -561,11 +605,11 @@ function instanceInSync(snc, db, map, file, newData, callback) {
             // update local hash.
             fileRecords[file].saveHash(newData);
 
-            // case 2. the last local downloaded version matches the server version (stanard collision test scenario)
+            // CASE 2. the last local downloaded version matches the server version (stanard collision test scenario)
         } else if (remoteHash == previousLocalVersionHash) {
             obj.inSync = true;
         }
-        // case 3, the remote version changed since we last downloaded it = not in sync
+        // CASE 3, the remote version changed since we last downloaded it = not in sync
         callback(err, obj);
     });
 }
@@ -647,23 +691,22 @@ function setupLogging() {
     });
 
     // support easier debugging of tests
-    logit.test = function() {
-        //arguments;
+    logit.test = function () {
         console.log('...............');
-        if(typeof arguments[0] == 'string') {
+        if (typeof arguments[0] == 'string') {
             this.info(arguments[0].underline);
         } else {
             this.info(arguments[0]);
         }
-        for(var i=1; i< arguments.length; i++) {
+        for (var i = 1; i < arguments.length; i++) {
             this.info(' - ', arguments[i]);
         }
-        console.log('...............');
+        //console.log('...............');
     };
 
     logger.extend(logit);
 
-    if(config.debug) {
+    if (config.debug) {
         logger.level = 'debug';
     }
     config._logger = logit;

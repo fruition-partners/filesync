@@ -19,7 +19,7 @@ function runTests(apiObj, configObj) {
     var testQueue = [];
     testQueue.push(testDownload);
     testQueue.push(testUpdateRecord);
-    //testQueue.push(testSyncConflict);
+    testQueue.push(testSyncConflict);
 
     var nextTest;
 
@@ -38,6 +38,7 @@ function runTests(apiObj, configObj) {
         }
     }
 
+    logger.test(('Running ' + testQueue.length + ' test(s).').bold);
     logger.test('Test file in use:', testFile);
 
     // start tests
@@ -80,7 +81,7 @@ function testDownload(callback) {
     }
 }
 
-function saveFile(snc, table, query, body, callback) {
+function updateRecord(snc, table, query, body, callback) {
     logger.test('Attempting record update:', table, query);
     snc.table(table).update(query, body, function (err, obj) {
         if (err) {
@@ -94,28 +95,55 @@ function saveFile(snc, table, query, body, callback) {
 
 /*
  * Test trying to update an existing record
+ *
+ * 1. get file
+ * 2. modify local file
+ * 3. trigger send of file
  */
 function testUpdateRecord(callback) {
 
     logger.test('TEST RUNNING: testUpdateRecord()'.yellow);
+
     var snc = api.getSncClient(getRoot());
     var file = getTestFilePath();
 
     var uniqueString = 'FileSync test (' + moment().format('x') + ')';
 
-    api.readFile(file, function (data) {
-        var body = {
-            'script': data + "\n// " + uniqueString
-        };
+    getTestFile(fileAdded);
 
-        saveFile(snc, testFile.table, 'name=' + testFile.name, body, recordSaved);
-    });
-
-    function recordSaved(complete) {
+    function fileAdded(complete) {
         if (complete) {
-            confirmFile(file, uniqueString);
+            updateLocalFile();
         } else {
             logger.test('[FAIL]:'.red + ' testUpdateRecord()');
+            callback(complete);
+        }
+
+    }
+
+    function updateLocalFile() {
+        api.readFile(file, function (data) {
+            var body = {
+                'script': data + "\n// " + uniqueString
+            };
+
+            api.writeFile(file, body.script, function (fileWritten) {
+                if (fileWritten) {
+                    api.send(file, sendResult);
+                } else {
+                    logger.test('[FAIL]:'.red + ' testSyncConflict() - could not update local file contents');
+                    callback(false);
+                }
+            });
+        });
+    }
+
+    function sendResult(complete) {
+        if (complete) {
+            logger.test('testUpdateRecord() - we were able to update the remote instance version');
+            confirmFile(file, uniqueString);
+        } else {
+            logger.test('[FAIL]:'.red + ' testUpdateRecord() - we could not update the remote instance');
             callback(false);
         }
     }
@@ -125,7 +153,7 @@ function testUpdateRecord(callback) {
             api.readFile(file, function (data) {
                 // check if file contains unique content
                 if (data.indexOf(subString) >= 0) {
-                    logger.test('[PASS]:'.green + ' testUpdateRecord()');
+                    logger.test('[PASS]:'.green + ' testUpdateRecord() - we can confirm the content on the server is correct');
                     callback(true);
                 } else {
                     logger.test('[FAIL]:'.red + ' testUpdateRecord() - file downloaded is not what was pushed');
@@ -138,11 +166,53 @@ function testUpdateRecord(callback) {
 
 /*
  * Tests trying to upload a record that has already been changed on the server
+ *
+ * 1. update server side record
+ * 2. update local file
+ * 3. TRY to use local file to update server record (should be rejected)
  */
 function testSyncConflict(callback) {
-    var file = getTestFilePath();
+    logger.test('TEST RUNNING: testSyncConflict()'.yellow);
 
-    //api.send(file);
+    var snc = api.getSncClient(getRoot());
+    var file = getTestFilePath();
+    var uniqueString = 'FileSync test (' + moment().format('x') + ')';
+
+    api.readFile(file, function (data) {
+        var body = {
+            'script': data + "\n// " + uniqueString
+        };
+
+        updateRecord(snc, testFile.table, 'name=' + testFile.name, body, recordSaved);
+    });
+
+    function recordSaved(complete) {
+        if (complete) {
+            // server record updated, now update local file
+            api.writeFile(file, 'whatever', function (fileWritten) {
+                if (fileWritten) {
+                    api.send(file, sendResult);
+                } else {
+                    logger.test('[FAIL]:'.red + ' testSyncConflict() - could not update local file contents');
+                }
+            });
+        } else {
+            logger.test('[FAIL]:'.red + ' testSyncConflict() - could not update instance record');
+            callback(false);
+        }
+    }
+
+    function sendResult(complete) {
+        // there was no sync conflict but should have been so we fail
+        if (complete) {
+            logger.test('[FAIL]:'.red + ' testSyncConflict() - we overwrote our online record without a sync conflict');
+            callback(false);
+        } else {
+            // there was a sync conflict and the record was not updated (as expected);
+            logger.test('[PASS]:'.green + ' testSyncConflict() - we received a sync conflict and the record was not updated');
+            callback(true);
+        }
+    }
 }
 
 module.exports = runTests;
