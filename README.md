@@ -159,6 +159,49 @@ See the **src/records.config.json** file for sample definitions.
             ...
         },
 ```
+### SASS CSS pre-compiler support
+
+It is possible to use FileSync with [compass](http://compass-style.org/) or [SASS](http://sass-lang.com/) to generate your CSS for CMS theme development. To do this we specify a folder definition in your config file like so:
+
+```
+"folders": {
+        "theme_sass": {
+            "table": "content_css",
+            "key": "name",
+            "fields": {
+                "scss": "style"
+            }
+        }
+    },
+```
+
+Your file hierarchy would then look like this:
+
+```
+/project/records/style_sheets/base.css
+/project/records/style_sheets/service_catalog.css
+
+/project/records/theme_sass/_vars.scss
+/project/records/theme_sass/base.scss
+/project/records/theme_sass/service_catalog.scss
+/project/records/theme_sass/_ootb_service_catalog.scss
+
+/project/compass/config.rb
+/project/compass/.sass-cache/
+```
+
+In this setup "theme_sass" holds your scss files/records including partials named on the instance like "base_scss" and "_vars_scss". The **"_scss"** part is important both from a FileSync technical perspective and for your successor or future maintainer. If your sass files do not use the **".scss"** suffix and your records do not contain **"_scss"** at the end then the sync process won't work.
+
+Your config.rb file is then configured to output the css generated files to the "style_sheets" folder. The config.rb file would then be configured like this:
+
+```
+css_dir = "../records/style_sheets"
+sass_dir = "../records/theme_sass"
+```
+
+On the instance you then simply create 2 themes. One that is used by your CMS (where "style_sheets" are uploaded to) and another that is used for development (where "theme_sass" SCSS files are uploaded). We start watching for SASS changes using the command: "`compass watch /project/compass`" and when compass outputs the new files they will be detected by FileSync and uploaded (including the SCSS files that have changed).
+
+Using this setup ensures that the customer will have all the files needed to do further development in case they want to use SASS or plain CSS files. If another developer wanted to work on the theme but didn't have compass/SASS configured then they could use an extra CSS record/file.
 
 
 ### Advanced settings
@@ -244,19 +287,20 @@ See [CHANGES.md](https://github.com/dynamicdan/filesync/blob/master/CHANGES.md)
 FileSync was built using [Node.js](http://nodejs.org/), a platform built on Chrome's JavaScript runtime.
 
 
-* README.md - this file, written in [Markdown][Markdown] syntax
-* CHANGES.md - clean summary of updates (not versions), written in [Markdown][Markdown] syntax
-* app/node.exe, node-darwin - Node.js runtime binaries
+* README.md + CHANGES.md - help, written in [Markdown][Markdown] syntax
+* app/node.exe, node-darwin - NodeJS runtime binaries
 * app/filesync.bat, filesync.command - Windows and Mac batch/shell scripts for starting FileSync
-* app/app.config.json - configuration file with mapping of folders to instances/tables
+* app/app.config.json - default/sample configuration file to specify instance connection details and other options
 * app/node_modules - folder containing 3rd-party node.js modules (from NPM) used to build app
 * app/src/app.js - main application that watches for file changes
-* app/src/notify.js - fancy system notifications
+* app/src/notify.js - user friendly system notifications when records have been downloaded or updated
 * app/src/upgrade.js - ensures that users that upgrade can easily resolve *breaking* changes
 * app/src/records.config.json - default folder definitions (that can be overwritten in app.config.json files)
-* app/src/config.js - a module used to load and validate and app.config.json file
-* app/src/snc-client.js - a module that interacts with SN JSON Web Service to receive and send updates to instance
-* [root folder] / .sync_data/ - a directory used to store information to help synchronise with the instance
+* app/src/config.js - a module used to load and validate the specified config file (app.config.json)
+* app/src/snc-client.js - a module that interacts with SN JSON Web Service to receive and send updates to an instance
+* app/src/file-record.js - utility module for working with files/records
+* app/src/tests.js - runs various tests to ensure no major breaking changes between versions
+* [root folder] / .sync_data/ - a directory used to store sync information to help synchronise with the instance
 
 [Markdown]: http://daringfireball.net/projects/markdown/
 

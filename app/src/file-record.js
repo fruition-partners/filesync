@@ -116,10 +116,22 @@ method.getSyncMap = function () {
     if (!fieldMap) return null;
 
     map.keyValue = fieldMap.keyValue;
+    map.fileName = fieldMap.keyValue;
+    // special sass case
+    if(this.isSCSS()) {
+        map.keyValue += '_scss';
+    }
     map.field = fieldMap.field;
     map.root = this.rootDir;
     this.syncMap = map;
     return map;
+};
+
+method.isSCSS = function() {
+    if(this.filePath.indexOf('.scss') > 0) {
+        return true;
+    }
+    return false;
 };
 
 method.validFile = function () {

@@ -307,6 +307,7 @@ function receive(file, allDoneCallBack) {
         query: map.key + '=' + map.keyValue
     };
 
+    //logit.info('Looking up record..', db);
     // TODO : we can support downloading records with various queries
     //    db = {
     //        table: map.table,
@@ -337,6 +338,7 @@ function receive(file, allDoneCallBack) {
 
         if (obj.records[0][db.field].length < 1) {
             logit.info('**WARNING : this record is 0 bytes'.red);
+            fileRecords[file].addError('This file was downloaded as 0 bytes. Ignoring sync. Restart FileSync and then make changes to upload.');
 
             notifyUser(msgCodes.RECEIVED_FILE_0_BYTES, {
                 table: map.table,
@@ -512,7 +514,11 @@ function onChange(file, stats) {
 }
 
 function fileHasErrors(file) {
-    var f = fileRecords[file];
+    var f = fileRecords[file] ? fileRecords[file] : false;
+    if(!f) {
+        trackFile(file);
+        return true;
+    }
     var errors = f.errors();
     if (errors) {
         logit.info('This file (' + file + ') failed to work for us previously. Skipping it. Previous errors on file/record: ', errors);
