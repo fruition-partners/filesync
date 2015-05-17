@@ -65,30 +65,25 @@ method.debug = function () {
 };
 
 method.getLocalHash = function () {
-    var metaFilePath = this.getMetaFilePath();
-    var fContents = '',
-        syncHash = '';
-    try {
-        fContents = fs.readFileSync(metaFilePath, 'utf8');
-        var metaObj = JSON.parse(fContents);
-        syncHash = metaObj.syncHash;
-    } catch (err) {
-        // don't care. (the calling function will then fail the sync check as desired)
-        this.logger.warn('--------- sync data file not yet existing ---------------'.red);
-        this.logger.warn('File in question: ' + metaFilePath);
+    var metaData = this._getMeta();
+    if(metaData) {
+        return metaData.syncHash;
     }
-    return syncHash;
+    this.logger.warn('--------- sync data not yet existing ---------------'.red);
+    return '';
 };
 
 
 method.saveHash = function (data) {
     this.logger.debug('Saving meta/hash data for file: ' + this.filePath);
-    var hash = makeHash(data);
-    // todo : save more useful meta data.
     var metaData = {
-        syncHash: hash
+        syncHash: makeHash(data)
     };
+    this._saveMeta(metaData);
+};
 
+// todo : allow extending existing meta data
+method._saveMeta = function(metaData) {
     var dataFile = this.getMetaFilePath();
     var outputString = JSON.stringify(metaData);
     fs.outputFile(dataFile, outputString, function (err) {
@@ -98,9 +93,20 @@ method.saveHash = function (data) {
     });
 };
 
-method.getMeta = function () {
-    this.logger.log('got meta');
-    return {};
+method._getMeta = function () {
+    var metaFilePath = this.getMetaFilePath();
+    var fContents = '';
+
+    try {
+        fContents = fs.readFileSync(metaFilePath, 'utf8');
+        var metaObj = JSON.parse(fContents);
+        return metaObj;
+    } catch (err) {
+        // don't care. (the calling function will then fail the sync check as desired)
+        this.logger.warn('--------- meta data file not yet existing ---------------'.red);
+        this.logger.warn('File in question: ' + metaFilePath);
+    }
+    return false;
 };
 
 
