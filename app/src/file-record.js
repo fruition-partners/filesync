@@ -18,13 +18,6 @@ function FileRecord(config, file) {
     this.logger = config._logger;
 }
 
-// todo : make into method
-function getHashFileLocation(rootDir, filePath) {
-    var syncFileRelative = filePath.replace(rootDir, '/' + syncDir);
-    var hashFile = rootDir + syncFileRelative;
-    return hashFile;
-}
-
 function makeHash(data) {
     var hash1 = crypto.createHash('md5').update(data).digest('hex');
     return hash1;
@@ -51,6 +44,12 @@ function getFieldMap(filename, map) {
 // methods
 // ------------------------------------------------
 
+method.getMetaFilePath = function() {
+    var syncFileRelative = this.filePath.replace(this.rootDir, path.sep + syncDir);
+    var hashFile = this.rootDir + syncFileRelative;
+    return hashFile;
+};
+
 
 method.getFileName = function () {
     return path.basename(this.filePath);
@@ -66,17 +65,17 @@ method.debug = function () {
 };
 
 method.getLocalHash = function () {
-    var hashFile = getHashFileLocation(this.rootDir, this.filePath);
+    var metaFilePath = this.getMetaFilePath();
     var fContents = '',
         syncHash = '';
     try {
-        fContents = fs.readFileSync(hashFile, 'utf8');
+        fContents = fs.readFileSync(metaFilePath, 'utf8');
         var metaObj = JSON.parse(fContents);
         syncHash = metaObj.syncHash;
     } catch (err) {
         // don't care. (the calling function will then fail the sync check as desired)
         this.logger.warn('--------- sync data file not yet existing ---------------'.red);
-        this.logger.warn('File in question: ' + hashFile);
+        this.logger.warn('File in question: ' + metaFilePath);
     }
     return syncHash;
 };
@@ -90,7 +89,7 @@ method.saveHash = function (data) {
         syncHash: hash
     };
 
-    var dataFile = getHashFileLocation(this.rootDir, this.filePath);
+    var dataFile = this.getMetaFilePath();
     var outputString = JSON.stringify(metaData);
     fs.outputFile(dataFile, outputString, function (err) {
         if (err) {
