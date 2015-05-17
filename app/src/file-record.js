@@ -18,17 +18,52 @@ function FileRecord(config, file) {
     this.logger = config._logger;
 }
 
-
-method.debug = function () {
-    this.logger.info(('filePath: ' + this.filePath).green);
-
-};
-
+// todo : make into method
 function getHashFileLocation(rootDir, filePath) {
     var syncFileRelative = filePath.replace(rootDir, '/' + syncDir);
     var hashFile = rootDir + syncFileRelative;
     return hashFile;
 }
+
+function makeHash(data) {
+    var hash1 = crypto.createHash('md5').update(data).digest('hex');
+    return hash1;
+}
+
+function getFieldMap(filename, map) {
+    var suffixes = Object.keys(map.fields);
+    for (var i = 0; i < suffixes.length; i++) {
+        var suffix = suffixes[i];
+        var match = filename.match(new RegExp(suffix + '$'));
+        if (match) {
+            var keyValue = filename.slice(0, match.index - 1);
+            return {
+                keyValue: keyValue,
+                field: map.fields[suffix]
+            };
+        }
+    }
+    return null;
+}
+
+
+// ------------------------------------------------
+// methods
+// ------------------------------------------------
+
+
+method.getFileName = function () {
+    return path.basename(this.filePath);
+};
+
+method.getFolderName = function () {
+    return path.basename(path.dirname(this.filePath));
+};
+
+method.debug = function () {
+    this.logger.info(('filePath: ' + this.filePath).green);
+
+};
 
 method.getLocalHash = function () {
     var hashFile = getHashFileLocation(this.rootDir, this.filePath);
@@ -46,10 +81,6 @@ method.getLocalHash = function () {
     return syncHash;
 };
 
-function makeHash(data) {
-    var hash1 = crypto.createHash('md5').update(data).digest('hex');
-    return hash1;
-}
 
 method.saveHash = function (data) {
     this.logger.debug('Saving meta/hash data for file: ' + this.filePath);
@@ -87,32 +118,17 @@ method.getRoot = function () {
     return root;
 };
 
-function getFieldMap(filename, map) {
-    var suffixes = Object.keys(map.fields);
-    for (var i = 0; i < suffixes.length; i++) {
-        var suffix = suffixes[i];
-        var match = filename.match(new RegExp(suffix + '$'));
-        if (match) {
-            var keyValue = filename.slice(0, match.index - 1);
-            return {
-                keyValue: keyValue,
-                field: map.fields[suffix]
-            };
-        }
-    }
-    return null;
-}
-
 
 method.getSyncMap = function () {
-    var folder = path.basename(path.dirname(this.filePath));
+    var folder = this.getFolderName();
+    var fileName = this.getFileName();
 
     // validate parent folder is mapped
     var map = this.config.folders[folder];
     if (!map) return null;
 
     // validate file suffix is mapped
-    var fieldMap = getFieldMap(path.basename(this.filePath), map);
+    var fieldMap = getFieldMap(fileName, map);
     if (!fieldMap) return null;
 
     map.keyValue = fieldMap.keyValue;
