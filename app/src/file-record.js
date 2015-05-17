@@ -134,7 +134,7 @@ method.getSyncMap = function () {
     map.keyValue = fieldMap.keyValue;
     map.fileName = fieldMap.keyValue;
     // special sass case
-    if(this.isSCSS()) {
+    if (this.isSCSS()) {
         map.keyValue += '_scss';
     }
     map.field = fieldMap.field;
@@ -143,8 +143,8 @@ method.getSyncMap = function () {
     return map;
 };
 
-method.isSCSS = function() {
-    if(this.filePath.indexOf('.scss') > 0) {
+method.isSCSS = function () {
+    if (this.filePath.indexOf('.scss') > 0) {
         return true;
     }
     return false;

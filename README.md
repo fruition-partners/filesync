@@ -1,4 +1,25 @@
-# FileSync (2.3.0)
+FileSync (2.4.0)
+=================
+
+**Contents**
+
+ * [Intro](#intro)
+ * [Overview](#overview)
+ * [Quick Start](#quick-start)
+ * [Installation](#installation)
+ * [Usage](#usage)
+   * [app.config.json settings](#appconfigjson-settings)
+   * [Folder definitions (optional)](#folder-definitions-optional)
+   * [Command Line Usage](#command-line-usage)
+ * [Advanced settings](#advanced-settings)
+   * [Specifying a config file](#specifying-a-config-file)
+   * [Exporting current setup](#exporting-current-setup)
+   * [SASS CSS pre-compiler support](#sass-css-pre-compiler-support)
+ * [Road Map](#road-map)
+ * [Contribution workflow](#contribution-workflow)
+ * [Changes](#changes)
+ * [Architecture](#architecture)
+ * [Windows support](#windows-support)
 
 ## Intro
 
@@ -22,6 +43,7 @@ existing scripts related to your project.
 
 Conflict management also detects if the server version has changed before trying to upload local changes (that may be based on an outdated version).
 
+
 ## Quick Start
 
 **[Download the repository](https://github.com/dynamicdan/filesync/archive/master.zip)** and check out the **[video walk-through](https://vimeo.com/76383815)** of installing, configuring and using FileSync.
@@ -30,7 +52,7 @@ Configure the app.config.js file as required per **[app.config.json settings](#a
 
 ## Installation
 
-**Step 1.** Ensure that your instance is running with a version greater or equal to Eureka to make use of the JSONv2 API (enabled by default).
+**Step 1.** Ensure that your instance is running with a version greater or equal to Eureka to make use of the JSONv2 API (enabled by default). For versions prior to Eurkea use the [older version of FileSync](https://github.com/fruition-partners/filesync).
 
 **Step 2.** Create a folder on your computer where the records will be saved.
 
@@ -81,12 +103,13 @@ FileSync does not currently support creating new records in ServiceNow by simply
 additional fields that may need to be populated beyond mapped script fields. So, always start by creating a new
 record on the instance, then add the empty local file and start editing your script.
 
-## app.config.json settings
+### app.config.json settings
 
 *Comments are included below for documentation purposes but are not valid in JSON files. You can validate JSON at
 <http://www.jslint.com/>*
 
-### Simple app.config.json file
+app.config.json file sample (see also app/app.config.json):
+
 ```javascript
     {
         // maps a root (project) folder to an instance
@@ -116,9 +139,6 @@ record on the instance, then add the empty local file and start editing your scr
 
         "preLoad": true,                            // create files as defined above per root in "preLoad"
         "createAllFolders": true,                   // create local folders to save on manual effort
-
-        "ignoreDefaultFolders": false,              // set to false to use basic mappings defined per
-                                                    //  src/records.config.json file
 
         "debug": false                              // set to true to enable more detailed debug logging
     }
@@ -159,6 +179,60 @@ See the **src/records.config.json** file for sample definitions.
             ...
         },
 ```
+
+### Command Line Usage
+
+To get a list of options and their usage run the following command:
+````
+./node-darwin src/app --help
+````
+
+
+
+
+## Advanced settings
+
+Property | Values | Default | Purpose
+------------ | -------------------- | ------------- | -------------
+debug | Bool: true / false | false | Enable more verbose debugging. Useful to troubleshoot connection issues.
+ignoreDefaultFolders | Bool: true / false | false | If false then utilise record to folder mapping defined in **src/records.config.json**.<br />If true then the **"folders"** property must be set as described below.
+folders | Object listing folders | not set | See **src/records.config.json** as an example for format and usage. If this property is defined then it will override that defined in **src/records.config.json** on a per folder level. This is an easy way to specify more mappings without modifying core files. If "ignoreDefaultFolders " is set to true then **src/records.config.json** is completely ignored and all mappings must be defined in the "folders" property.
+createAllFolders | Bool: true / false | false | Creates all folders specified by folders (if set) or the default **src/records.config.json** file.
+preLoad | Bool: true / false | not set | Creates local files that can be specified per root/project preLoad setting defined below. Set to false to ignore the below property. Note that files that already exist are ignored but there is however a slight performance cost if you leave this option set to true. <br />**TIP**: set to false once files have been created.
+roots[...].preLoadList | Object listing folders and files | n/a |  Defines a list of files to automatically download per folder. Saves on manual file creation efforts <br />Eg: <br />``` preLoadList: { ```<br />  ```  "business_rules": ["my special rule.js", "Another rule.js"]```<br />```}```
+
+
+### Specifying a config file
+
+Config files can be specified in 1 of 3 ways:
+ * Not specified (eg from filesync.command) which will use the provided app.config.json file by default
+ * By the existence of a file in the home directory
+  * on mac: `~/.filesync/app.config.json`
+  * on windows: `c:\\<HOME DIR>\.filesync\app.config.json`
+ * Or via the command line.
+  * Eg. ```./node-darwin src/app --config=~/Desktop/my-instance.config.json```
+
+
+### Exporting current setup
+
+It is a burden to download the various records in the correct folders when getting started. To alleviate this there is an export function that will generate a config file with the `preLoadList` filled in.
+
+This is also useful if you want to create a backup of your current setup.
+
+Command Line Usage:
+
+````
+./node-darwin src/app --config <config to use> --export <new config file>
+````
+
+Eg.
+````
+./node-darwin src/app --config ~/.filesync/app.config-acme.json --export ~/Desktop/acme.config.json
+````
+
+The resulting json file will **not** include your authentication information. It will include the folder setup you used and a preLoadList listing all the records you have previously downloaded. This is very handy for getting new team members setup and providing them an easy reference to important files. Eg, for CMS development this could mean theme CSS/SASS, UI Macros, UI Pages and various script includes.
+
+
 ### SASS CSS pre-compiler support
 
 It is possible to use FileSync with [compass](http://compass-style.org/) or [SASS](http://sass-lang.com/) to generate your CSS for CMS theme development. To do this we specify a folder definition in your config file like so:
@@ -204,29 +278,6 @@ On the instance you then simply create 2 themes. One that is used by your CMS (w
 Using this setup ensures that the customer will have all the files needed to do further development in case they want to use SASS or plain CSS files. If another developer wanted to work on the theme but didn't have compass/SASS configured then they could use an extra CSS record/file.
 
 
-### Advanced settings
-
-Property | Values | Default | Purpose
------------- | -------------------- | ------------- | -------------
-debug | Bool: true / false | false | Enable more verbose debugging. Useful to troubleshoot connection issues.
-ignoreDefaultFolders | Bool: true / false | false | If false then utilise record to folder mapping defined in **src/records.config.json**.<br />If true then the **"folders"** property must be set as described below.
-folders | Object listing folders | not set | See **src/records.config.json** as an example for format and usage. If this property is defined then it will override that defined in **src/records.config.json** on a per folder level. This is an easy way to specify more mappings without modifying core files. If "ignoreDefaultFolders " is set to true then **src/records.config.json** is completely ignored and all mappings must be defined in the "folders" property.
-createAllFolders | Bool: true / false | false | Creates all folders specified by folders (if set) or the default **src/records.config.json** file.
-preLoad | Bool: true / false | not set | Creates local files that can be specified per root/project preLoad setting defined below. Set to false to ignore the below property. Note that files that already exist are ignored but there is however a slight performance cost if you leave this option set to true. <br />**TIP**: set to false once files have been created.
-roots[...].preLoadList | Object listing folders and files | n/a |  Defines a list of files to automatically download per folder. Saves on manual file creation efforts <br />Eg: <br />``` preLoadList: { ```<br />  ```  "business_rules": ["my special rule.js", "Another rule.js"]```<br />```}```
-
-
-### Specifying a config file
-
-Config files can be specified in 1 of 3 ways:
- * Not specified (eg from filesync.command) which will use the provided app.config.json file by default
- * By the existence of a file in the home directory
-  * on mac: `~/.filesync/app.config.json`
-  * on windows: `c:\\<HOME DIR>\.filesync\app.config.json`
- * Or via the command line.
-  * Eg. ```./node-darwin src/app --config=~/Desktop/my-instance.config.json```
-
-
 ## Road Map
 
 Considering ServiceNow does not handle merge conflicts at all, this is a major goal of this tool! Contributions to help achieve this road map or improve the tool in general are **greatly** appreciated.
@@ -248,9 +299,9 @@ Considering ServiceNow does not handle merge conflicts at all, this is a major g
 
 
 Nice to haves
-- [x] auto create folder structure for user (```./node-darwin app/src --setup```)
+- [x] auto create folder structure for user (```./node-darwin src/app --setup```)
 - [ ] add record browser to automatically download chosen files.
-- [x] option to re-download all files from instance (```./node-darwin app/src --resync```)
+- [x] option to re-download all files from instance (```./node-darwin src/app --resync```)
 - [ ] auto download records created or updated by a given user ID
 - [ ] notifications play sounds, show more info, are clickable etc.
 - [ ] offline support? (keep track of files that are queued to upload when the connection is available again and retry).. maybe not. This could be dangerous if records get updated without someone to test them. Potentially workable if the last queued file is less than 3 minutes ago to cater for flaky mobile/roaming connections.
@@ -260,7 +311,7 @@ Nice to haves
 - [ ] add windows support for fancy/OS style notifications
 
 
-## Contributing workflow
+## Contribution workflow
 
 Here’s how we suggest you go about proposing a change to this project:
 

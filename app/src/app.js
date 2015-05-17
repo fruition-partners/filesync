@@ -42,7 +42,8 @@ var isMac = /^darwin/.test(process.platform);
 var testsRunning = false;
 
 var chokiWatcher = false,
-    chokiWatcherReady = false;
+    chokiWatcherReady = false,
+    chokiWatcherIgnore = ["**/.*"]; // ignore hidden files/dirs
 
 var filesInQueueToDownload = 0,
     filesToPreLoad = {};
@@ -92,6 +93,16 @@ function init() {
                 writeFile: writeFile,
                 send: send
             }, config);
+            return;
+        }
+
+        if (argv.export) {
+            if (argv.export === true || argv.export.length < 4) {
+                logit.error('Please specify a proper export location.');
+                logit.error('Eg. --export ~/Desktop/config.json');
+                process.exit(1);
+            }
+            exportCurrentSetup(argv.export);
             return;
         }
 
@@ -217,11 +228,13 @@ function addIfNotPresent(filePath) {
 
 
 function displayHelp() {
-    var msgs = ['--help     (shows this message)',
-                '--config   (specify a path to your app.config.json file)',
-                '--setup    (will create your folders for you)',
-                '--test     (will run a download test for a known file on the instance)',
-                '--resync   (will re-download all the files to get the latest server version)'];
+    var msgs = ['--help           :: shows this message',
+                '--config <file>  :: specify a path to your app.config.json file',
+                '--setup          :: will create your folders for you',
+                '--test           :: will self test the tool and connection',
+                '--resync         :: will re-download all the files to get the latest server version',
+                 '--export <file>  :: export the current setup including downloaded records for quickstart'
+               ];
     console.log('Help'.green);
     console.log('List of options:');
     for (var i in msgs) {
@@ -244,6 +257,72 @@ function getSncClient(root) {
         host._client = sncClient(host);
     }
     return host._client;
+}
+
+/*
+ * Copy the current config file in use and output a version without
+ * sensitive data but with the preLoadList filled in as per the
+ * current list of downloaded records.
+ * */
+function exportCurrentSetup(exportConfigPath) {
+
+    logit.info('Creating new config file...');
+    var exportConfig = {
+        "roots": config.roots,
+        "folders": config.folders,
+        "preLoad": true,
+        "createAllFolders": true
+    };
+
+    var watchedFolders = Object.keys(config.roots);
+
+    for (var i in watchedFolders) {
+        // remove sensitive data that may exist
+        delete exportConfig.roots[watchedFolders[i]].auth;
+        // overwrite remaining sensitive data
+        exportConfig.roots[watchedFolders[i]].user = '<your user name>';
+        exportConfig.roots[watchedFolders[i]].pass = '<your password (which will be encrypted)>';
+
+        exportConfig.roots[watchedFolders[i]].preLoadList = {};
+    }
+
+    var chokiWatcher = chokidar.watch(watchedFolders, {
+            persistent: true,
+            // ignores use anymatch (https://github.com/es128/anymatch)
+            ignored: chokiWatcherIgnore
+        })
+        .on('add', function (file, stats) {
+            // add all files that have content..
+            //  files without content will confuse the person starting
+            //  and could be considered irrelevant.
+            if (stats.size > 0) {
+                logit.info('File to export: %s', file);
+                var f = new FileRecord(config, file),
+                    folder = f.getFolderName(),
+                    fileName = f.getFileName(),
+                    rootDir = f.getRoot();
+
+                // add to appropriate preLoadList folder array
+                if (!exportConfig.roots[rootDir].preLoadList[folder]) {
+                    exportConfig.roots[rootDir].preLoadList[folder] = [];
+                }
+                exportConfig.roots[rootDir].preLoadList[folder].push(fileName);
+            }
+        })
+        .on('ready', function () {
+            logit.debug('Exporting config: %j', exportConfig);
+
+            fs.writeFile(exportConfigPath, JSON.stringify(exportConfig, null, 4), function (err) {
+                if (err) {
+                    logit.eror('Error updating/writing config file. path: %s', exportConfigPath);
+                } else {
+                    logit.info('Export complete'.green);
+                    logit.info('Export location: %s'.green, exportConfigPath);
+                }
+                process.exit(1);
+            });
+
+        });
 }
 
 /* keep track of files waiting to be processed
@@ -515,7 +594,7 @@ function onChange(file, stats) {
 
 function fileHasErrors(file) {
     var f = fileRecords[file] ? fileRecords[file] : false;
-    if(!f) {
+    if (!f) {
         trackFile(file);
         return true;
     }
@@ -631,7 +710,7 @@ function watchFolders() {
     chokiWatcher = chokidar.watch(watchedFolders, {
             persistent: true,
             // ignores use anymatch (https://github.com/es128/anymatch)
-            ignored: ["**/.*"] // ignore hidden files/dirs
+            ignored: chokiWatcherIgnore
         })
         .on('add', function (file, stats) {
 

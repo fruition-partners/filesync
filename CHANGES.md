@@ -1,5 +1,10 @@
 # FileSync Changes
 
+* 2015-05-17 (**Version 2.4.0**)
+ * Make README more logical and easier to follow (inc. TOC)
+ * Support exporting the current list of downloaded records for quickstart and backup
+   * Command Line Usage `/node-darwin src/app --export your-new-file.config.json`
+
 * 2015-05-09 (**Version 2.3.0**)
  * Improved logging (timestamps and proper info/warn/error usage via winston)
  * Refactor, improve documentation and complete test support (testSyncConflict function)
