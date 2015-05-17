@@ -10,18 +10,23 @@ var testFile = {
     suffix: 'js',
     folder: 'script_includes',
     table: 'sys_script_include'
-}
+};
 
 function runTests(apiObj, configObj) {
     api = apiObj;
     config = configObj;
     logger = configObj._logger;
-    var testQueue = [];
+    var testQueue = [],
+        nextTest;
+
     testQueue.push(testDownload);
     testQueue.push(testUpdateRecord);
     testQueue.push(testSyncConflict);
 
-    var nextTest;
+    // missing tests
+    //testQueue.push(testFolderSetup);
+    //testQueue.push(testExportConfig);
+    //testQueue.push(testUpgradeNeeded);
 
     function testDone(passed) {
         if (passed) {
@@ -39,7 +44,7 @@ function runTests(apiObj, configObj) {
     }
 
     logger.test(('Running ' + testQueue.length + ' test(s).').bold);
-    logger.test('Test file in use:', testFile);
+    logger.test('Test file in use: %j', testFile);
 
     // start tests
     nextTest = testQueue.shift();
