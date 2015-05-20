@@ -1,5 +1,8 @@
 # FileSync Changes
 
+* 2015-05-20 (**Version 2.4.1**)
+ * FIX issue where the `--config` option with a relative path did not work
+
 * 2015-05-17 (**Version 2.4.0**)
  * Make README more logical and easier to follow (inc. TOC)
  * Support exporting the current list of downloaded records for quickstart and backup

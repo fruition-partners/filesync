@@ -1,4 +1,4 @@
-FileSync (2.4.0)
+FileSync (2.4.1)
 =================
 
 **Contents**

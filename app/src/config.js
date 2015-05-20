@@ -108,14 +108,13 @@ function getConfig() {
 
 function setConfigLocation(pathToConfig) {
     var configFile = '';
+
     // set by cmd line option
     if (pathToConfig) {
-        // must exist or the (advanced) user has made a mistake that they can fix
+        // resolve ~/ or ../ style paths
+        pathToConfig = path.resolve(pathToConfig);
+        // pathToConfig must exist or the (advanced) user has made a mistake that they can fix
         configFile = pathToConfig;
-        // node can't include modules with tilda so we fix it
-        if (configFile.indexOf('~') >= 0) {
-            configFile = configFile.replace(/~/, _getHomeDir());
-        }
     } else {
         // is there a file outside of the repo?
         configFile = homeConfigPath();
