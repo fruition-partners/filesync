@@ -1,5 +1,8 @@
 # FileSync Changes
 
+* 2015-07-19 (**Version 2.4.2**)
+ * Updated README and added video to demo FileSync in action
+
 * 2015-05-20 (**Version 2.4.1**)
  * FIX issue where the `--config` option with a relative path did not work
 

@@ -107,7 +107,9 @@ function init() {
         }
 
         if (config.createAllFolders || argv.setup) {
-            setupFolders(config, function () {});
+            setupFolders(config, function () {
+                logit.info('Created folders required for syncing records'.green);
+            });
         }
         // pre add some files defined per root in config
         if (config.preLoad) {

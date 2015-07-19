@@ -1,12 +1,15 @@
-FileSync (2.4.1)
+FileSync (2.4.2)
 =================
+
+
+[![Intro to FileSync](https://github.com/dynamicdan/filesync/blob/master/thumbnail.png)](https://www.youtube.com/watch?v=OlVllfPVOrA "Intro to FileSync")
 
 **Contents**
 
  * [Intro](#intro)
  * [Overview](#overview)
  * [Quick Start](#quick-start)
- * [Installation](#installation)
+   * [Installation](#installation)
  * [Usage](#usage)
    * [app.config.json settings](#appconfigjson-settings)
    * [Folder definitions (optional)](#folder-definitions-optional)
@@ -28,7 +31,7 @@ This is a **maintained** fork of the fruition-parteners filesync repo. This repo
 
 ## Overview
 
-FileSync synchronizes local file changes to mapped records in ServiceNow instances.
+FileSync synchronises ServiceNow instance field values to local files and syncs file changes back to the applicable record.
 
 This enables ServiceNow developers to use their favourite integrated development environments (IDEs) and text editors
 like WebStorm, Sublime and [Brackets](http://brackets.io/) for editing JavaScript, HTML, Jelly and other code - without wasting time and interrupting
@@ -46,11 +49,13 @@ Conflict management also detects if the server version has changed before trying
 
 ## Quick Start
 
-**[Download the repository](https://github.com/dynamicdan/filesync/archive/master.zip)** and check out the **[video walk-through](https://vimeo.com/76383815)** of installing, configuring and using FileSync.
+**[Download the repository](https://github.com/dynamicdan/filesync/archive/master.zip)** and check out the **[intro video](https://www.youtube.com/watch?v=OlVllfPVOrA)** that explains the concept and starting points.
+
+The original video for installing, configuring and using FileSync for v.0.1.0 can be found [here](https://vimeo.com/76383815).
 
 Configure the app.config.js file as required per **[app.config.json settings](#appconfigjson-settings)** below. Run the Windows (filesync.bat) or Mac (filesync.command) based app launcher.
 
-## Installation
+### Installation
 
 **Step 1.** Ensure that your instance is running with a version greater or equal to Eureka to make use of the JSONv2 API (enabled by default). For versions prior to Eurkea use the [older version of FileSync](https://github.com/fruition-partners/filesync).
 
