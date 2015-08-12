@@ -127,9 +127,10 @@ function init() {
     }
 
     function initComplete() {
-        if (config.preLoad || config._resyncFiles) {
+        if(filesInQueueToDownload != 0) {
             // if files are being downloaded then the watcher will be started when
-            // the download queue is cleared
+            // the download queue is cleared. Assumes all downloads complete before user
+            // needs to download new files.
             return;
         }
         logit.log('initComplete.. starting watcher..');
