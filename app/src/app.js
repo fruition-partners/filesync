@@ -16,7 +16,8 @@ var moment = require('moment');
 
 // ---------------------------------------------------
 // custom imports
-var config = require('./config'),
+var configLoader = require('./config'),
+    config = {},
     upgradeNeeded = require('./upgrade'),
     sncClient = require('./snc-client'),
     notify = require('./notify'),
@@ -64,8 +65,8 @@ function init() {
 
     // get config
     try {
-        config.setConfigLocation(argv.config);
-        config = config.getConfig();
+        configLoader.setConfigLocation(argv.config);
+        config = configLoader.getConfig();
     } catch (e) {
         winston.error('Configuration error:'.red, e.message);
         process.exit(1);
@@ -272,7 +273,7 @@ function exportCurrentSetup(exportConfigPath) {
     logit.info('Creating new config file...');
     var exportConfig = {
         "roots": config.roots,
-        "folders": config.folders,
+        "folders": configLoader.getCustomFolders(config),
         "preLoad": true,
         "createAllFolders": true
     };

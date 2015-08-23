@@ -67,6 +67,11 @@ function loadFolders(config) {
 
         // config.folders can extend/overwrite confRecords.folders if provided
         if (config.folders) {
+            // keep track of any custom definitions to include in exports
+            var keys = Object.keys(config.folders);
+            for (var i in keys) {
+                config.folders[keys[i]]._custom = true;
+            }
             config.folders = extend(confRecords.folders, config.folders);
         } else {
             config.folders = confRecords.folders;
@@ -104,6 +109,25 @@ function getConfig() {
 
     configValid(config);
     return config;
+}
+
+/*
+ * Utility function for getting ONLY the folders that the user
+ * provided in their original JSON config file.
+ */
+function getCustomFolders(config) {
+    var folders = {},
+        keys = Object.keys(config.folders);
+
+    for (var i in keys) {
+        var k = keys[i];
+        var obj = config.folders[k];
+        if (obj._custom) {
+            folders[k] = config.folders[k];
+            delete folders[k]._custom;
+        }
+    }
+    return folders;
 }
 
 function setConfigLocation(pathToConfig) {
@@ -151,5 +175,6 @@ function logConfig(config) {
 
 module.exports = {
     "getConfig": getConfig,
-    "setConfigLocation": setConfigLocation
+    "setConfigLocation": setConfigLocation,
+    "getCustomFolders": getCustomFolders
 };

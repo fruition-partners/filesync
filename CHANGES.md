@@ -2,9 +2,10 @@
 
 * 2015-08-23 (**Version 2.4.4**)
  * Added option to click notifications which then loads the record in the browser
+ * Fixed minor issue where exporting current setup included default folder definitions (which are not needed)
 
 * 2015-08-12 (**Version 2.4.3**)
- * Fixed bug for first run where the file watcher was not being started if preLoad or createAllFolders was true.
+ * Fixed bug for first run where the file watcher was not being started if preLoad or createAllFolders was true
 
 * 2015-07-19 (**Version 2.4.2**)
  * Updated README and added video to demo FileSync in action
@@ -31,23 +32,23 @@
 * 2015-04-13 (**Version 2.2.0**)
  * Isolate file and record based functions in own Class
  * Add tests for downloading and updating records
- * Simplify function calling and add more call backs (to support testing).
+ * Simplify function calling and add more call backs (to support testing)
 
 
 * 2015-04-13 (**Version 2.1.0**)
  * Rewrite pre-loading and re-syncing of files.
- * Clean up watching files system to be enabled and disabled at the right times and avoid file writes triggering watch changes.
+ * Clean up watching files system to be enabled and disabled at the right times and avoid file writes triggering watch changes
 
 * 2015-04-06 (**Version 2.0.0 !**)
- * Add preLoad option to download files defined per root in "preLoad" object.
- * Re-write documentation for app.config.json due to massive simplification and first-run setup.
+ * Add preLoad option to download files defined per root in "preLoad" object
+ * Re-write documentation for app.config.json due to massive simplification and first-run setup
  * Fix redundant requests to instance for syncing
  * Add automatic folder creation option
    * Set ```createAllFolders: true``` in app.config.json
 
 * 2015-04-04
  * Make folder definitions standard across all projects but allow users to override the defaults or extend them.
-   * Set ```"ignoreDefaultFolders": true,``` if desired and specify own ```"folders": {...}``` for a custom setup.
+   * Set ```"ignoreDefaultFolders": true,``` if desired and specify own ```"folders": {...}``` for a custom setup
 
 * 2015-04-03 (**major changes!** :mushroom:)
  * Allow specifying the location of the config file:
@@ -55,7 +56,7 @@
  * Cleanup formatting
  * Add help option:
    * ```./node-darwin app/src --help```
- * Save sync data in JSON format so that we can make more use of it.
+ * Save sync data in JSON format so that we can make more use of it
    * WARNING: existing users will need to remove their current .sync dir and resync. When starting the app a warning will be output on the command line explaining what to do...
      * ```./node-darwin app/src --resync```
      * ```rm - Rf .sync``` (per site root dir)
@@ -83,5 +84,5 @@
  * Added notification support (OS X)
 
 * 2015-03-10
- * Added support for Eureka+ versions.
+ * Added support for Eureka+ versions
  * Initial clone and file re-structure
