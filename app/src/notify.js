@@ -55,6 +55,12 @@ function notifyUser() {
                 message: 'Took no time at all!'
             };
         } else if (code == codes.UPLOAD_ERROR) {
+            notifyArgs = {
+                type: 'fail',
+                title: 'Failed to Upload file',
+                subtitle: '',
+                message: args.file
+            };
 
         } else if (code == codes.RECEIVED_FILE) {
             notifyArgs = {
@@ -98,13 +104,18 @@ function notifyUser() {
                 subtitle: '',
                 message: 'Please see command line output for details.'
             };
-        } else if( code == codes.ALL_DOWNLOADS_COMPLETE) {
+        } else if (code == codes.ALL_DOWNLOADS_COMPLETE) {
             notifyArgs = {
                 type: 'pass',
                 title: 'All Downloads Complete',
                 subtitle: '',
                 message: 'Multiple files downloaded.'
             };
+        }
+
+        // open a URL when clicked if provided
+        if (args.open) {
+            notifyArgs.open = args.open;
         }
 
         if (isMac) {
@@ -114,6 +125,7 @@ function notifyUser() {
             // linux support?
         }
     }
+
     function setDebug() {
         debug = true;
     }

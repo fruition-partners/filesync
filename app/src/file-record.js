@@ -44,7 +44,23 @@ function getFieldMap(filename, map) {
 // methods
 // ------------------------------------------------
 
-method.getMetaFilePath = function() {
+
+method.getRecordUrl = function () {
+    var syncMap = this.getSyncMap(),
+        root = syncMap.root,
+        rootConfig = this.config.roots[root],
+        host = rootConfig.host,
+        protocol = rootConfig.protocol ? rootConfig.protocol : 'https',
+        url = protocol + '://' + host + '/' + syncMap.table + '.do?sysparm_query=' + syncMap.key + '=' + syncMap.keyValue;
+
+    // in order to work with notify we must have a strictly valid URL (no spaces)
+    url = url.replace(/\s/g, "%20");
+
+    return url;
+
+};
+
+method.getMetaFilePath = function () {
     var syncFileRelative = this.filePath.replace(this.rootDir, path.sep + syncDir);
     var hashFile = this.rootDir + syncFileRelative;
     return hashFile;
@@ -66,7 +82,7 @@ method.debug = function () {
 
 method.getLocalHash = function () {
     var metaData = this._getMeta();
-    if(metaData) {
+    if (metaData) {
         return metaData.syncHash;
     }
     this.logger.warn('--------- sync data not yet existing ---------------'.red);
@@ -83,7 +99,7 @@ method.saveHash = function (data) {
 };
 
 // todo : allow extending existing meta data
-method._saveMeta = function(metaData) {
+method._saveMeta = function (metaData) {
     var dataFile = this.getMetaFilePath();
     var outputString = JSON.stringify(metaData);
     fs.outputFile(dataFile, outputString, function (err) {

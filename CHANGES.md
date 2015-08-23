@@ -1,5 +1,8 @@
 # FileSync Changes
 
+* 2015-08-23 (**Version 2.4.4**)
+ * Added option to click notifications which then loads the record in the browser
+
 * 2015-08-12 (**Version 2.4.3**)
  * Fixed bug for first run where the file watcher was not being started if preLoad or createAllFolders was true.
 

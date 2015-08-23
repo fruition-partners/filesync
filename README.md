@@ -1,4 +1,4 @@
-FileSync (2.4.3)
+FileSync (2.4.4)
 =================
 
 
@@ -308,7 +308,7 @@ Nice to haves
 - [ ] add record browser to automatically download chosen files.
 - [x] option to re-download all files from instance (```./node-darwin src/app --resync```)
 - [ ] auto download records created or updated by a given user ID
-- [ ] notifications play sounds, show more info, are clickable etc.
+- [x] notifications are clickable and load the record in the browser
 - [ ] offline support? (keep track of files that are queued to upload when the connection is available again and retry).. maybe not. This could be dangerous if records get updated without someone to test them. Potentially workable if the last queued file is less than 3 minutes ago to cater for flaky mobile/roaming connections.
 - [ ] save meta data recieved in request for user info (eg, sys_updated_on, sys_updated_by, sys_mod_count, description)
 - [ ] config option to log details to log file (help others send log info)

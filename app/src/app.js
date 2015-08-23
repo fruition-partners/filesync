@@ -357,7 +357,7 @@ function decrementQueue() {
         // restart watch
         if (!notifyEnabled) {
             notifyEnabled = true;
-            notifyUser(msgCodes.ALL_DOWNLOADS_COMPLETE, "");
+            notifyUser(msgCodes.ALL_DOWNLOADS_COMPLETE);
         }
         if (!chokiWatcher) {
             // do not start watching folders straight away as there may be IO streams
@@ -399,7 +399,9 @@ function receive(file, allDoneCallBack) {
 
     snc.table(db.table).getRecords(db.query, function (err, obj) {
         if (err) {
-            notifyUser(msgCodes.COMPLEX_ERROR);
+            notifyUser(msgCodes.COMPLEX_ERROR, {
+                open: fileRecords[file].getRecordUrl()
+            });
             decrementQueue();
             allDoneCallBack(false);
             return handleError(err, db);
@@ -411,7 +413,8 @@ function receive(file, allDoneCallBack) {
             notifyUser(msgCodes.RECORD_NOT_FOUND, {
                 table: map.table,
                 file: map.keyValue,
-                field: map.field
+                field: map.field,
+                open: fileRecords[file].getRecordUrl()
             });
             decrementQueue();
             allDoneCallBack(false);
@@ -425,7 +428,8 @@ function receive(file, allDoneCallBack) {
             notifyUser(msgCodes.RECEIVED_FILE_0_BYTES, {
                 table: map.table,
                 file: map.keyValue,
-                field: map.field
+                field: map.field,
+                open: fileRecords[file].getRecordUrl()
             });
         }
         logit.info('Received:'.green, db);
@@ -440,7 +444,8 @@ function receive(file, allDoneCallBack) {
                 notifyUser(msgCodes.RECEIVED_FILE_ERROR, {
                     table: map.table,
                     file: map.keyValue,
-                    field: map.field
+                    field: map.field,
+                    open: fileRecords[file].getRecordUrl()
                 });
 
             } else {
@@ -449,7 +454,8 @@ function receive(file, allDoneCallBack) {
                 notifyUser(msgCodes.RECEIVED_FILE, {
                     table: map.table,
                     file: map.keyValue,
-                    field: map.field
+                    field: map.field,
+                    open: fileRecords[file].getRecordUrl()
                 });
 
                 logit.info('Saved:'.green, file);
@@ -525,7 +531,8 @@ function send(file, callback) {
                 notifyUser(msgCodes.NOT_IN_SYNC, {
                     table: map.table,
                     file: map.keyValue,
-                    field: map.field
+                    field: map.field,
+                    open: fileRecords[file].getRecordUrl()
                 });
                 logit.warn('Instance record is not in sync with local env ("%s").', map.keyValue);
                 callback(false);
@@ -546,12 +553,14 @@ function send(file, callback) {
                     // update hash for collision detection
                     fileRecords[file].saveHash(data);
                     notifyUser(msgCodes.UPLOAD_COMPLETE, {
-                        file: map.keyValue
+                        file: map.keyValue,
+                        open: fileRecords[file].getRecordUrl()
                     });
                     logit.info('Updated instance version:', db);
                 } else {
                     notifyUser(msgCodes.UPLOAD_ERROR, {
-                        file: map.keyValue
+                        file: map.keyValue,
+                        open: fileRecords[file].getRecordUrl()
                     });
                 }
                 callback(complete);
@@ -664,7 +673,9 @@ function instanceInSync(snc, db, map, file, newData, callback) {
     // TODO : duplicate code here
     snc.table(db.table).getRecords(db.query, function (err, obj) {
         if (err) {
-            notifyUser(msgCodes.COMPLEX_ERROR);
+            notifyUser(msgCodes.COMPLEX_ERROR, {
+                open: fileRecords[file].getRecordUrl()
+            });
             return handleError(err, db);
         }
         if (obj.records.length === 0) {
@@ -672,7 +683,8 @@ function instanceInSync(snc, db, map, file, newData, callback) {
             notifyUser(msgCodes.RECORD_NOT_FOUND, {
                 table: map.table,
                 file: map.keyValue,
-                field: map.field
+                field: map.field,
+                open: fileRecords[file].getRecordUrl()
             });
             return;
         }
