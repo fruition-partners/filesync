@@ -1,5 +1,8 @@
 # FileSync Changes
 
+* 2015-08-23 (**Version 2.4.5**)
+ * Fixed notification parameter bug causing issues for certain notifications
+
 * 2015-08-23 (**Version 2.4.4**)
  * Added option to click notifications which then loads the record in the browser
  * Fixed minor issue where exporting current setup included default folder definitions (which are not needed)

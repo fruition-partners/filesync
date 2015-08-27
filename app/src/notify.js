@@ -34,6 +34,8 @@ function notifyUser() {
     //        but are being received and exist in the notification center. Consider adding delay or merging notifications.
     function msg(code, args) {
 
+        args = args || {};
+
         if (debug) {
             console.log('notifying with code: ' + code);
         }
