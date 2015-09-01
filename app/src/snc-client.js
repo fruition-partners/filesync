@@ -105,18 +105,23 @@ function sncClient(config) {
         }
 
         function send(request) {
+            var maxRecords = request.rows || 1;
             var urlObj = {
                 pathname: '/' + request.table + '.do',
                 query: {
                     // DP@SNC change : JSONv2 not JSON (Eureka+)
                     JSONv2: '',
+                    sysparm_record_count: maxRecords,
                     sysparm_action: request.action
                 }
             };
+
             if (request.parmName) {
                 urlObj.query['sysparm_' + request.parmName] = request.parmValue;
             }
+
             var path = url.format(urlObj);
+            logger.debug('snc-client send() path: ' + path);
 
             function handleResponse(err, req, res, obj) {
                 err = validateResponse(err, req, res, obj, request);
@@ -131,18 +136,28 @@ function sncClient(config) {
                     client.get(path, handleResponse);
                 }
             } catch (err) {
-                logger.error('Some connection error happend...', error);
+                logger.error('Some connection error happend...', err);
                 // fail hard!
                 process.exit(1);
             }
         }
 
         function getRecords(query, callback) {
+            var q = query,
+                rows = 1;
+            if (query.query) {
+                q = query.query;
+            }
+            if(query.rows) {
+                rows = query.rows;
+            }
+
             send({
                 table: tableName,
                 action: 'getRecords',
                 parmName: 'query',
-                parmValue: query,
+                parmValue: q,
+                rows: rows,
                 callback: callback
             });
         }

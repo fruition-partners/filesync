@@ -128,7 +128,7 @@ function init() {
     }
 
     function initComplete() {
-        if(filesInQueueToDownload != 0) {
+        if (filesInQueueToDownload !== 0) {
             // if files are being downloaded then the watcher will be started when
             // the download queue is cleared. Assumes all downloads complete before user
             // needs to download new files.
@@ -398,7 +398,7 @@ function receive(file, allDoneCallBack) {
     //        query: 'sys_created_by' + '=' + 'ben.yukich'
     //    };
 
-    snc.table(db.table).getRecords(db.query, function (err, obj) {
+    snc.table(db.table).getRecords(db, function (err, obj) {
         if (err) {
             notifyUser(msgCodes.COMPLEX_ERROR, {
                 open: fileRecords[file].getRecordUrl()
@@ -672,7 +672,7 @@ function instanceInSync(snc, db, map, file, newData, callback) {
 
     logit.info('Comparing remote version with previous local version...');
     // TODO : duplicate code here
-    snc.table(db.table).getRecords(db.query, function (err, obj) {
+    snc.table(db.table).getRecords(db, function (err, obj) {
         if (err) {
             notifyUser(msgCodes.COMPLEX_ERROR, {
                 open: fileRecords[file].getRecordUrl()
