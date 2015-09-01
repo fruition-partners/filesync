@@ -190,6 +190,8 @@ See the **src/records.config.json** file for sample definitions.
 To get a list of options and their usage run the following command:
 ````
 ./node-darwin src/app --help
+ OR
+node.exe src/app --help
 ````
 
 
@@ -204,7 +206,17 @@ ignoreDefaultFolders | Bool: true / false | false | If false then utilise record
 folders | Object listing folders | not set | See **src/records.config.json** as an example for format and usage. If this property is defined then it will override that defined in **src/records.config.json** on a per folder level. This is an easy way to specify more mappings without modifying core files. If "ignoreDefaultFolders " is set to true then **src/records.config.json** is completely ignored and all mappings must be defined in the "folders" property.
 createAllFolders | Bool: true / false | false | Creates all folders specified by folders (if set) or the default **src/records.config.json** file.
 preLoad | Bool: true / false | not set | Creates local files that can be specified per root/project preLoad setting defined below. Set to false to ignore the below property. Note that files that already exist are ignored but there is however a slight performance cost if you leave this option set to true. <br />**TIP**: set to false once files have been created.
-roots[...].preLoadList | Object listing folders and files | n/a |  Defines a list of files to automatically download per folder. Saves on manual file creation efforts <br />Eg: <br />``` preLoadList: { ```<br />  ```  "business_rules": ["my special rule.js", "Another rule.js"]```<br />```}```
+
+
+#### Root specific options
+
+Use on the same level where host is defined.
+
+Property | Values | Default | Purpose
+------------ | -------------------- | ------------- | -------------
+preLoadList | Object listing folders and files | n/a |  Defines a list of files to automatically download per folder. Saves on manual file creation efforts <br />Eg: <br />``` preLoadList: { ```<br />  ```  "business_rules": ["my special rule.js", "Another rule.js"]```<br />```}```
+protocol | "http" | not set (https) | If https is not supported then force http usage
+acceptBadSSL | Bool: true / false | false | If the SSL is not fully valid or is sefl-signed or the signing authority is not valid then set this to true. This should only be set to true in development environments. Setting debug to true will help test connection issues and will help validate if this is an issue or not.
 
 
 ### Specifying a config file

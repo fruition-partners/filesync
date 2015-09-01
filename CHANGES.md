@@ -1,5 +1,12 @@
 # FileSync Changes
 
+* 2015-09-01 (**Version 2.4.6**)
+ * Added more default folder configs
+ * Cleaned up readme
+ * Prepared for search and search based auto-download support
+ * Added support for flaky SSL setups (self-signed certificates etc.)
+   * see `acceptBadSSL` usage in README
+
 * 2015-08-23 (**Version 2.4.5**)
  * Fixed notification parameter bug causing issues for certain notifications
 

@@ -1,4 +1,6 @@
-// Copyright (c) 2013 Fruition Partners, Inc.
+/*
+ * The util that controls sending the actual server communications
+ */
 
 var http = require('http');
 var restify = require('restify');
@@ -27,16 +29,22 @@ function sncClient(config) {
     var auth = new Buffer(config.auth, 'base64').toString(),
         parts = auth.split(':'),
         user = parts[0],
-        pass = parts[1];
+        pass = parts[1],
+        // support testing on localhost but default to https
+        protocol = config.protocol ? config.protocol : 'https',
+        clientOptions = {
+            url: protocol + '://' + config.host
+        };
 
-    // DP@SNC change : support testing on localhost but default to https
-    var protocol = config.protocol ? config.protocol : 'https';
+    // supports self-signed certificate issues and invalid SSL certs (eg. dev env.)
+    if (config.acceptBadSSL) {
+        logger.warn("We are using an insecure SSL connection.".red);
+        clientOptions.rejectUnauthorized = false; // tested on windows and worked!
+    }
 
     // we may have some connection issues with TCP resets (ECONNRESET). Lets debug them further.
     try {
-        var client = restify.createJsonClient({
-            url: protocol + '://' + config.host
-        });
+        var client = restify.createJsonClient(clientOptions);
         client.basicAuth(user, pass);
     } catch (err) {
         logger.error('Some error happend', err);
@@ -68,11 +76,19 @@ function sncClient(config) {
             // standard responses
             if (res.statusCode !== 200) {
 
-                if (res.statusCode === 401) help = 'Check credentials.';
-                if (res.statusCode === 302) help = 'Verify JSON Web Service plugin is activated.';
+                if (res.statusCode === 401) {
+                    help = 'Check credentials.';
+                } else if (res.statusCode === 302) {
+                    help = 'Verify JSON Web Service plugin is activated.';
+                }
+
                 var message = util.format('%s - %s', res.statusCode, http.STATUS_CODES[res.statusCode]);
-                if (help) message += ' - ' + help;
-                if (err) message += util.format('\ndetails: %j', err);
+                if (help) {
+                    message += ' - ' + help;
+                }
+                if (err) {
+                    message += util.format('\ndetails: %j', err);
+                }
                 return new Error(message);
             }
             if (err) {
@@ -94,6 +110,7 @@ function sncClient(config) {
         function logResponse(err, req, res, obj, request) {
             var resCode = res ? res.statusCode : 'no response';
             logger.debug('-------------------------------------------------------');
+            logger.debug(err);
             logger.debug('HTTP ' + req.method + ':', client.url.host, req.path,
                 '\nrequest:', request.postObj || '',
                 '\nresponse:', util.inspect({

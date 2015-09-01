@@ -85,6 +85,27 @@
             "fields": {
                 "html": "message_html"
             }
+        },
+        "fix_scripts": {
+            "table": "sys_script_fix",
+            "key": "name",
+            "fields": {
+                "js": "script"
+            }
+        },
+        "catalog_client_scripts": {
+            "table": "catalog_script_client",
+            "key": "name",
+            "fields": {
+                "js": "script"
+            }
+        },
+        "sys_web_service": {
+            "table": "sys_web_service",
+            "key": "name",
+            "fields": {
+                "js": "script"
+            }
         }
     }
 }
