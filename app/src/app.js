@@ -21,6 +21,8 @@ var configLoader = require('./config'),
     upgradeNeeded = require('./upgrade'),
     sncClient = require('./snc-client'),
     notify = require('./notify'),
+    SearchUtil = require('./search'),
+    Search = SearchUtil.Search,
     runTests = require('./tests'),
     FileRecordUtil = require('./file-record'),
     FileRecord = FileRecordUtil.FileRecord,
@@ -84,6 +86,27 @@ function init() {
             logit.error('Upgrade is needed. Please check the Readme/change log online.'.red);
             process.exit(1);
         }
+
+        // experimental search option (needs testing and cleanup)
+        if (argv.search) {
+            var queryObj = {
+                query: argv.search_query || '',
+                table: argv.search_table || '',
+                download: argv.download || false,
+                rows: argv.search_rows || false,
+                demo: argv.search_demo || false
+            };
+            var roots = config.roots,
+                keys = Object.keys(roots),
+                firstRoot = keys[0]; // support first root for now
+
+            var snc = getSncClient(firstRoot);
+
+            var s = new Search(config, snc);
+            s.getResults(queryObj);
+            return;
+        }
+
         if (argv.test) {
             logit.info('TEST MODE ACTIVATED'.green);
             testsRunning = true;
@@ -810,6 +833,8 @@ function setupLogging() {
     if (config.debug) {
         logger.level = 'debug';
     }
+
+    // support for 3rd party logging (eg, FileRecord, notify and Search)
     config._logger = logit;
 }
 

@@ -148,7 +148,7 @@ function sncClient(config) {
             if (query.query) {
                 q = query.query;
             }
-            if(query.rows) {
+            if (query.rows) {
                 rows = query.rows;
             }
 
