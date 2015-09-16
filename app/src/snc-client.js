@@ -39,7 +39,7 @@ function sncClient(config) {
     // supports self-signed certificate issues and invalid SSL certs (eg. dev env.)
     if (config.acceptBadSSL) {
         logger.warn("We are using an insecure SSL connection.".red);
-        clientOptions.rejectUnauthorized = false; // tested on windows and worked!
+        clientOptions.rejectUnauthorized = false; // fixes UNABLE_TO_VERIFY_LEAF_SIGNATURE
     }
 
     // we may have some connection issues with TCP resets (ECONNRESET). Lets debug them further.
