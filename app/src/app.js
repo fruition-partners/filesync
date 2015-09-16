@@ -38,6 +38,10 @@ var notifyUserMsg = notifyObj.msg,
     // list of supported notification messages defined in notify.js
     msgCodes = notifyObj.codes;
 
+var DOWNLOAD_OK = 1,
+    DOWNLOAD_FAIL = -1,
+    multiDownloadStatus = DOWNLOAD_OK;
+
 
 var isMac = /^darwin/.test(process.platform);
 //var isWin = /^win/.test(process.platform);
@@ -272,7 +276,7 @@ function displayHelp() {
 function handleError(err, context) {
     logit.error(err);
     if (context) {
-        logit.error('  context:', context);
+        logit.error('  handleError context:', context);
     }
 }
 
@@ -365,8 +369,10 @@ function queuedFile() {
     logit.info(('Files left in queue: ' + filesInQueueToDownload).redBG);
 
     // more than 2 files in the queue? Lets disable notify to avoid the ulimit issue
-    if (filesInQueueToDownload > 2) {
+    if (filesInQueueToDownload > 2 && notifyEnabled) {
         notifyEnabled = false;
+        // reset multi file download status to OK.
+        multiDownloadStatus = DOWNLOAD_OK;
     }
 }
 
@@ -378,11 +384,19 @@ function decrementQueue() {
     filesInQueueToDownload--;
     logit.info(('Files left in queue: ' + filesInQueueToDownload).blueBG);
     if (filesInQueueToDownload === 0) {
-        // restart watch
+
+        // re-enable notifications (notifications only disabled when multiple files in queue)
         if (!notifyEnabled) {
             notifyEnabled = true;
-            notifyUser(msgCodes.ALL_DOWNLOADS_COMPLETE);
+            // show one notification to represent if all files were downloaded or not
+            if(multiDownloadStatus == DOWNLOAD_FAIL) {
+                logit.error('Some or all files failed to download'.red);
+                notifyUser(msgCodes.COMPLEX_ERROR);
+            } else {
+                notifyUser(msgCodes.ALL_DOWNLOADS_COMPLETE);
+            }
         }
+        // restart watch
         if (!chokiWatcher) {
             // do not start watching folders straight away as there may be IO streams
             // being closed which will cause a "change" event for chokidar on the file.
@@ -391,6 +405,31 @@ function decrementQueue() {
             }, 200); // delay for 200 milliseconds to be sure that chokidar won't freak out!
         }
     }
+}
+
+function validResponse(err, obj, db, map, fileRecord) {
+    if (err) {
+        notifyUser(msgCodes.COMPLEX_ERROR, {
+            open: fileRecord.getRecordUrl()
+        });
+        handleError(err, db);
+        return false;
+    }
+
+    if (obj.records.length === 0) {
+        logit.info('No records found:'.yellow, db);
+        fileRecord.addError("No records found");
+
+        notifyUser(msgCodes.RECORD_NOT_FOUND, {
+            table: map.table,
+            file: map.keyValue,
+            field: map.field,
+            open: fileRecord.getRecordUrl()
+        });
+        return false;
+    }
+
+    return true;
 }
 
 function receive(file, allDoneCallBack) {
@@ -406,6 +445,7 @@ function receive(file, allDoneCallBack) {
     queuedFile();
 
     var snc = getSncClient(map.root);
+
     // note: creating a new in scope var so cb gets correct map - map.name was different at cb exec time
     var db = {
         table: map.table,
@@ -413,36 +453,12 @@ function receive(file, allDoneCallBack) {
         query: map.key + '=' + map.keyValue
     };
 
-    //logit.info('Looking up record..', db);
-    // TODO : we can support downloading records with various queries
-    //    db = {
-    //        table: map.table,
-    //        field: map.field,
-    //        query: 'sys_created_by' + '=' + 'ben.yukich'
-    //    };
-
     snc.table(db.table).getRecords(db, function (err, obj) {
-        if (err) {
-            notifyUser(msgCodes.COMPLEX_ERROR, {
-                open: fileRecords[file].getRecordUrl()
-            });
+        var isValid = validResponse(err, obj, db, map, fileRecords[file]);
+        if (!isValid) {
             decrementQueue();
             allDoneCallBack(false);
-            return handleError(err, db);
-        }
-        if (obj.records.length === 0) {
-            logit.info('No records found:'.yellow, db);
-            fileRecords[file].addError("No records found");
-
-            notifyUser(msgCodes.RECORD_NOT_FOUND, {
-                table: map.table,
-                file: map.keyValue,
-                field: map.field,
-                open: fileRecords[file].getRecordUrl()
-            });
-            decrementQueue();
-            allDoneCallBack(false);
-            return;
+            return false;
         }
 
         if (obj.records[0][db.field].length < 1) {
@@ -608,6 +624,7 @@ function addFile(file, stats, callback) {
     callback = callback || function (complete) {
         if (!complete) {
             logit.info(('Could not add file:  ' + file).red);
+            multiDownloadStatus = DOWNLOAD_FAIL;
         }
     };
 
@@ -694,31 +711,20 @@ function instanceInSync(snc, db, map, file, newData, callback) {
     }
 
     logit.info('Comparing remote version with previous local version...');
-    // TODO : duplicate code here
+
     snc.table(db.table).getRecords(db, function (err, obj) {
-        if (err) {
-            notifyUser(msgCodes.COMPLEX_ERROR, {
-                open: fileRecords[file].getRecordUrl()
-            });
-            return handleError(err, db);
-        }
-        if (obj.records.length === 0) {
-            logit.info('No records found:'.yellow, db);
-            notifyUser(msgCodes.RECORD_NOT_FOUND, {
-                table: map.table,
-                file: map.keyValue,
-                field: map.field,
-                open: fileRecords[file].getRecordUrl()
-            });
-            return;
+        obj.inSync = false; // default to false to assume not in sync (safety first!)
+        obj.noPushNeeded = false; // default to false to assume we must upload
+
+        var isValid = validResponse(err, obj, db, map, fileRecords[file]);
+        if (!isValid) {
+            callback(err, obj);
+            return false;
         }
 
         logit.info('Received:'.green, db);
-        var remoteVersion = obj.records[0][db.field];
-        var remoteHash = makeHash(remoteVersion);
-
-        obj.inSync = false; // default to false to assume not in sync (safety first!)
-        obj.noPushNeeded = false; // default to false to assume we must upload
+        var remoteVersion = obj.records[0][db.field],
+            remoteHash = makeHash(remoteVersion);
 
         // CASE 1. Records local and remote are the same
         if (newDataHash == remoteHash) {
