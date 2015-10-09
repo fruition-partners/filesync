@@ -1,4 +1,4 @@
-FileSync (2.4.6)
+FileSync (2.4.7)
 =================
 
 
@@ -119,14 +119,13 @@ app.config.json file sample (see also app/app.config.json):
     {
         // maps a root (project) folder to an instance
         "roots": {
-            "c:\\dev\\project_a": {                 // full path to root folder
-                                                    // on Windows, ensure that backslashes are doubled
-                                                    //   since backslash is an escape character in JSON
+            "c:/dev/project_a": {                   // full path to root folder
+                                                    // on Windows, ensure that forward slases are used!
                 "host": "demo001.service-now.com",  // instance host name
                 "user": "admin",                    // instance credentials
                 "pass": "admin"                     // encoded to auth key and re-saved at runtime
             },
-            "c:\\dev\\project_b": {                 // add additional root mappings as needed
+            "c:/dev/project_b": {                 // add additional root mappings as needed
                 "host": "demo002.service-now.com",
                 "auth": "YWRtaW46YWRtaW4="          // example of encoded user/pass
             },
@@ -136,8 +135,8 @@ app.config.json file sample (see also app/app.config.json):
                 "auth": "YWRtaW46YWRtaW4=",
                 "preLoadList": {
                     "script_includes": ["JSUtil.js",
-                                        "Transform.js"] // specify a list of files to create and sync instead of
-                                                        //   using the command line.
+                                        "Transform.js"] // specify a list of files to create and sync on
+                                                        //   startup (see preLoad below)
                 }
             }
         },
@@ -223,9 +222,9 @@ acceptBadSSL | Bool: true / false | false | If the SSL is not fully valid or is 
 
 Config files can be specified in 1 of 3 ways:
  * Not specified (eg from filesync.command) which will use the provided app.config.json file by default
- * By the existence of a file in the home directory
+ * By the existence of a file in a hidden directory in the home directory
   * on mac: `~/.filesync/app.config.json`
-  * on windows: `c:\\<HOME DIR>\.filesync\app.config.json`
+  * on windows: `c:\<HOME DIR>\.filesync\app.config.json`
  * Or via the command line.
   * Eg. ```./node-darwin src/app --config=~/Desktop/my-instance.config.json```
 

@@ -87,7 +87,7 @@ function init() {
 
     function start(upgradeBlocks) {
         if (upgradeBlocks) {
-            logit.error('Upgrade is needed. Please check the Readme/change log online.'.red);
+            logit.error('Upgrade is needed. Please check the Readme and change logs online.'.red);
             process.exit(1);
         }
 

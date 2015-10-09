@@ -11,7 +11,7 @@ var method = FileRecord.prototype,
     syncDir = '.sync_data';
 
 function FileRecord(config, file) {
-    this.filePath = file;
+    this.filePath = normalisePath(file);
     this.config = config;
     this.rootDir = this.getRoot();
     this.errorList = [];
@@ -37,6 +37,11 @@ function getFieldMap(filename, map) {
         }
     }
     return null;
+}
+
+// fix windows path issues (windows can handle both '\' and '/' so be *nix friendly)
+function normalisePath(p) {
+    return p.replace(/\\/g, '/');
 }
 
 
@@ -131,6 +136,11 @@ method.getRoot = function () {
     if (this.rootDir) return this.rootDir;
 
     var root = path.dirname(this.filePath);
+
+    // help find the root path on windows
+    // (config json file cannot use '\\' or '\' paths; even if on windows)
+    root = normalisePath(root);
+
     while (!this.config.roots[root]) {
         var up = path.dirname(root);
         if (root === up) throw new Error('Failed to find root folder.');
