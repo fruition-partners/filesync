@@ -56,7 +56,7 @@ function homeConfigPath() {
 
 function _getHomeDir() {
     // should also be windows friendly but not tested
-    var ans = process.env[(process.platform == 'win32') ? 'USERPROFILE' : 'HOME'];
+    var ans = process.env[(process.platform.indexOf('win') >= 0 ) ? 'USERPROFILE' : 'HOME'];
     return ans;
 }
 
