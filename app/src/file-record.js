@@ -95,21 +95,26 @@ method.getLocalHash = function () {
 };
 
 
-method.saveHash = function (data) {
+method.saveHash = function (data, callback) {
     this.logger.debug('Saving meta/hash data for file: ' + this.filePath);
     var metaData = {
         syncHash: makeHash(data)
     };
-    this._saveMeta(metaData);
+    this._saveMeta(metaData, callback);
 };
 
 // todo : allow extending existing meta data
-method._saveMeta = function (metaData) {
+method._saveMeta = function (metaData, callback) {
     var dataFile = this.getMetaFilePath();
     var outputString = JSON.stringify(metaData);
+    var _this = this;
+
     fs.outputFile(dataFile, outputString, function (err) {
         if (err) {
-            this.logger.error('Could not write out meta file'.red, dataFile);
+            _this.logger.error('Could not write out meta file'.red, dataFile);
+            callback(false);
+        } else {
+            callback(true);
         }
     });
 };

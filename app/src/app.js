@@ -389,7 +389,7 @@ function decrementQueue() {
         if (!notifyEnabled) {
             notifyEnabled = true;
             // show one notification to represent if all files were downloaded or not
-            if(multiDownloadStatus == DOWNLOAD_FAIL) {
+            if (multiDownloadStatus == DOWNLOAD_FAIL) {
                 logit.error('Some or all files failed to download'.red);
                 notifyUser(msgCodes.COMPLEX_ERROR);
             } else {
@@ -490,15 +490,22 @@ function receive(file, allDoneCallBack) {
 
             } else {
                 // write out hash for collision detection
-                fileRecords[file].saveHash(obj.records[0][db.field]);
-                notifyUser(msgCodes.RECEIVED_FILE, {
-                    table: map.table,
-                    file: map.keyValue,
-                    field: map.field,
-                    open: fileRecords[file].getRecordUrl()
-                });
+                fileRecords[file].saveHash(obj.records[0][db.field], function (saved) {
+                    if (saved) {
+                        notifyUser(msgCodes.RECEIVED_FILE, {
+                            table: map.table,
+                            file: map.keyValue,
+                            field: map.field,
+                            open: fileRecords[file].getRecordUrl()
+                        });
 
-                logit.info('Saved:'.green, file);
+                        logit.info('Saved:'.green, file);
+                    } else {
+                        logit.error('SERIOUS ERROR: FAILED TO SAVE META FILE FOR SYNC RESOLUTION.'.red);
+                        notifyUser(msgCodes.COMPLEX_ERROR);
+                    }
+
+                });
             }
 
             decrementQueue();
@@ -591,19 +598,27 @@ function send(file, callback) {
             push(snc, file, db, map, body, function (complete) {
                 if (complete) {
                     // update hash for collision detection
-                    fileRecords[file].saveHash(data);
-                    notifyUser(msgCodes.UPLOAD_COMPLETE, {
-                        file: map.keyValue,
-                        open: fileRecords[file].getRecordUrl()
+                    fileRecords[file].saveHash(data, function (saved) {
+                        if (saved) {
+                            notifyUser(msgCodes.UPLOAD_COMPLETE, {
+                                file: map.keyValue,
+                                open: fileRecords[file].getRecordUrl()
+                            });
+                            logit.info('Updated instance version:', db);
+
+                        } else {
+                            notifyUser(msgCodes.COMPLEX_ERROR);
+                        }
+                        callback(saved);
                     });
-                    logit.info('Updated instance version:', db);
                 } else {
                     notifyUser(msgCodes.UPLOAD_ERROR, {
                         file: map.keyValue,
                         open: fileRecords[file].getRecordUrl()
                     });
+                    callback(complete);
                 }
-                callback(complete);
+
             });
         });
     });
