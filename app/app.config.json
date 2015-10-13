@@ -9,12 +9,12 @@
                 "script_includes": ["JSUtil.js", "Transform.js"]
             }
         },
-        "c:\\dev\\project_a": {
+        "c:/dev/project_a": {
             "host": "demo001.service-now.com",
             "user": "admin",
             "pass": "admin"
         },
-        "c:\\dev\\project_b": {
+        "c:/dev/project_b": {
             "host": "demo002.service-now.com",
             "auth": "YWRtaW46YWRtaW4="
         }
