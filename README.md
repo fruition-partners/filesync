@@ -1,4 +1,4 @@
-FileSync (2.4.7)
+FileSync (2.4.8)
 =================
 
 
@@ -220,13 +220,13 @@ acceptBadSSL | Bool: true / false | false | If the SSL is not fully valid or is 
 
 ### Specifying a config file
 
-Config files can be specified in 1 of 3 ways:
- * Not specified (eg from filesync.command) which will use the provided app.config.json file by default
- * By the existence of a file in a hidden directory in the home directory
-  * on mac: `~/.filesync/app.config.json`
-  * on windows: `c:\<HOME DIR>\.filesync\app.config.json`
- * Or via the command line.
-  * Eg. ```./node-darwin src/app --config=~/Desktop/my-instance.config.json```
+Config files can be specified when running the app via the command line.
+* Eg. ```./node-darwin src/app --config ~/Desktop/my-instance.config.json```
+
+When not running the app via the command line the default app.config.json file will be used.
+If you require added security, it is suggested to create an invisible folder that contains your config files.
+* Eg. mac: `~/.filesync/toyota.config.json`
+* Eg. win: `c:/<HOME DIR>/.filesync/ford.config.json`
 
 
 ### Exporting current setup

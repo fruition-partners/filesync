@@ -71,6 +71,11 @@ function init() {
 
     // get config
     try {
+        if(!argv.config) {
+            console.log('The config argument must be specified (eg. --config app.config.json)'.red);
+            console.log('Run with --help for more info');
+            process.exit(1);
+        }
         configLoader.setConfigLocation(argv.config);
         config = configLoader.getConfig();
     } catch (e) {

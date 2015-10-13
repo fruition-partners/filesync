@@ -14,7 +14,6 @@ var extend = require('util')._extend;
 
 // the location of the config file (populated dynamically)
 var config_file = '';
-var DEFAULT_CONFIG_FILE = path.join('..', 'app.config.json');
 
 // initial config for folders and record matchup (can be overridden in app.config.json)
 var CONFIG_RECORDS = path.join('..', 'src', 'records.config.json');
@@ -49,14 +48,9 @@ function configValid(config) {
     return true;
 }
 
-// OS friendly solution to path
-function homeConfigPath() {
-    return path.join(_getHomeDir(), '.filesync', 'app.config.json');
-}
-
 function _getHomeDir() {
     // should also be windows friendly but not tested
-    var ans = process.env[(process.platform.indexOf('win') >= 0 ) ? 'USERPROFILE' : 'HOME'];
+    var ans = process.env[(process.platform.indexOf('win') >= 0) ? 'USERPROFILE' : 'HOME'];
     return ans;
 }
 
@@ -130,26 +124,13 @@ function getCustomFolders(config) {
     return folders;
 }
 
+// pathToConfig must exist or the (advanced) user has made a mistake that they can fix
 function setConfigLocation(pathToConfig) {
-    var configFile = '';
+    // resolve ~/ or ../ style paths
+    config_file = path.resolve(pathToConfig);
 
-    // set by cmd line option
-    if (pathToConfig) {
-        // resolve ~/ or ../ style paths
-        pathToConfig = path.resolve(pathToConfig);
-        // pathToConfig must exist or the (advanced) user has made a mistake that they can fix
-        configFile = pathToConfig;
-    } else {
-        // is there a file outside of the repo?
-        configFile = homeConfigPath();
-        if (!fs.existsSync(configFile)) {
-            // no file in ~/.filesync/ so use the fallback as default
-            configFile = DEFAULT_CONFIG_FILE;
-        }
-    }
-    console.log('Using config file: ' + configFile.green);
-    config_file = configFile;
-    return configFile;
+    console.log('Using config file: ' + config_file.green);
+    return config_file;
 }
 
 

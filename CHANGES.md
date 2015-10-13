@@ -1,5 +1,8 @@
 # FileSync Changes
 
+* 2015-10-13 (**Version 2.4.8**)
+ * Fix password encoding issue occuring when not specifying a config path (fixes #10)
+
 * 2015-10-09 (**Version 2.4.7**)
  * Fix windows path issues and add upgrade warning
     * **UPGRADE NOTICE**: config files on all systems should now use *nix style paths. This means `"m:\\Desktop\\records"` is now invalid and should be replaced with `"m:/Dekstop/records"`.

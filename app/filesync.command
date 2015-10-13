@@ -1,5 +1,5 @@
 #!/bin/sh
 
-cd "`dirname "$0"`" 
+cd "`dirname "$0"`"
 echo "Starting FileSync..."
-./node-darwin src/app
+./node-darwin src/app --config app.config.json
