@@ -1,5 +1,8 @@
 # FileSync Changes
 
+* 2015-10-14 (**Version 2.4.10**)
+ * Fix rare race condition with File I/O processes that sometimes caused changed files to be overwritten instead of uploaded
+
 * 2015-10-14 (**Version 2.4.9**)
  * Fix osx-notifier issue where record names starting with symbols crashed the notification app on mac (fixes #9)
    * If your record is like "(Keyfile)" then the notifcation will show "_(Keyfile)".
@@ -9,7 +12,7 @@
 
 * 2015-10-09 (**Version 2.4.7**)
  * Fix windows path issues and add upgrade warning
-    * **UPGRADE NOTICE**: config files on all systems should now use *nix style paths. This means `"m:\\Desktop\\records"` is now invalid and should be replaced with `"m:/Dekstop/records"`.
+    * **UPGRADE NOTICE**: config files on all systems should now use *nix style paths. This means `"m:\\Desktop\\records"` is now invalid and should be replaced with `"m:/Dekstop/records"`
 
 * 2015-09-01 (**Version 2.4.6**)
  * Added more default folder configs

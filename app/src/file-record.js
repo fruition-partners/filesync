@@ -16,6 +16,9 @@ function FileRecord(config, file) {
     this.rootDir = this.getRoot();
     this.errorList = [];
     this.logger = config._logger;
+
+    // assume all files already exist (toggled by watcher)
+    this.setNewlyDiscoveredFile(false);
 }
 
 function makeHash(data) {
@@ -74,6 +77,14 @@ method.getMetaFilePath = function () {
 
 method.getFileName = function () {
     return path.basename(this.filePath);
+};
+
+// track if a file has been discovered by the watcher or not as a "new" record field to download
+method.setNewlyDiscoveredFile = function(isNew) {
+    this._isNewFile = isNew;
+};
+method.isNewlyDiscoveredFile = function() {
+    return this._isNewFile;
 };
 
 method.getFolderName = function () {

@@ -71,7 +71,7 @@ function init() {
 
     // get config
     try {
-        if(!argv.config) {
+        if (!argv.config) {
             console.log('The config argument must be specified (eg. --config app.config.json)'.red);
             console.log('Run with --help for more info');
             process.exit(1);
@@ -124,7 +124,8 @@ function init() {
                 getSncClient: getSncClient,
                 readFile: readFile,
                 writeFile: writeFile,
-                send: send
+                send: send,
+                trackFile: trackFile
             }, config);
             return;
         }
@@ -485,6 +486,21 @@ function receive(file, allDoneCallBack) {
         var objName = obj.records[0].name;
 
         writeFile(file, objData, function (complete) {
+
+            var wasNewlyDiscovered = fileRecords[file].isNewlyDiscoveredFile();
+
+            // already written file or ignored file
+            fileRecords[file].setNewlyDiscoveredFile(false);
+
+            // we did not write out the file because this would result in overwriting needed data
+            if (!complete && wasNewlyDiscovered) {
+                // send the process down the correct path
+                logit.info('Local has been modified (not added) and will now be sent.');
+                decrementQueue();
+                send(file, allDoneCallBack);
+                return; // don't do any callback.. we came down the wrong path anyway!
+            }
+
             if (!complete) {
                 notifyUser(msgCodes.RECEIVED_FILE_ERROR, {
                     table: map.table,
@@ -492,6 +508,9 @@ function receive(file, allDoneCallBack) {
                     field: map.field,
                     open: fileRecords[file].getRecordUrl()
                 });
+
+                decrementQueue();
+                allDoneCallBack(complete);
 
             } else {
                 // write out hash for collision detection
@@ -510,24 +529,56 @@ function receive(file, allDoneCallBack) {
                         notifyUser(msgCodes.COMPLEX_ERROR);
                     }
 
+                    decrementQueue();
+                    allDoneCallBack(saved);
                 });
             }
 
-            decrementQueue();
-            allDoneCallBack(complete);
         });
     });
 }
 
 function writeFile(file, data, callback) {
-    fs.outputFile(file, data, function (err) {
-        if (err) {
-            handleError(err, file);
-            callback(false);
-            return;
-        }
-        callback(true);
-    });
+    // file was discovered as "new" by watcher (chokidar)
+    var mustBeEmpty = fileRecords[file].isNewlyDiscoveredFile();
+
+    // are we expecting that the file is empty?
+    if (mustBeEmpty) {
+        /*
+         * File overwrite check here.
+         * The file must either not exist or be empty before we attempt
+         * to overwrite it. Fixes an edge case race condition where the chokidar watcher
+         * thought that our file was empty (due to atomic saves?) but it really wasn't
+         * this caused an "addFile" call instead of an "updateRecord" process :-(
+         *
+         */
+
+        readFile();
+    } else {
+        outputFile();
+    }
+
+
+    function readFile() {
+        fs.readFile(file, 'utf8', function (err, data) {
+            if (err || data.length > 0) {
+                callback(false);
+            } else {
+                outputFile();
+            }
+        });
+    }
+
+    function outputFile() {
+        fs.outputFile(file, data, function (err) {
+            if (err) {
+                handleError(err, file);
+                callback(false);
+                return;
+            }
+            callback(true);
+        });
+    }
 }
 
 // it is expected that the file always exists (otherwise die hard)
@@ -629,16 +680,9 @@ function send(file, callback) {
     });
 }
 
-function addFile(file, stats, callback) {
+function addFile(file, callback) {
 
     if (!trackFile(file)) return;
-
-    stats = stats || false;
-
-    if (stats && stats.size > 0) {
-        // these files can be ignored (we only process empty files)
-        return;
-    }
 
     // default callback
     callback = callback || function (complete) {
@@ -687,8 +731,11 @@ function trackFile(file) {
 
     var f = fileRecords[file] ? fileRecords[file] : false;
     // existing, check for errors
-    if (f && fileHasErrors(file)) {
-        return false; // can't process
+    if (f) {
+        if (fileHasErrors(file)) {
+            return false; // can't process
+        }
+        return f;
     } else {
         // new, check if valid
         f = new FileRecord(config, file);
@@ -780,7 +827,22 @@ function watchFolders() {
         .on('add', function (file, stats) {
 
             if (chokiWatcherReady) {
-                addFile(file, stats);
+
+                // ensure a file object exists
+                if (trackFile(file)) {
+                    // ensure file is really empty
+                    if (stats && stats.size > 0) {
+                        // these files can be ignored (we only process empty files)
+                        return;
+                    } else {
+
+                        // track file as a newly discovered file
+                        fileRecords[file].setNewlyDiscoveredFile(true);
+
+                        addFile(file);
+                    }
+                }
+
             } else {
                 trackFile(file);
             }

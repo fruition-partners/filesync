@@ -17,34 +17,53 @@ function runTests(apiObj, configObj) {
     config = configObj;
     logger = configObj._logger;
     var testQueue = [],
-        nextTest;
+        nextTest,
+        testsPassed = 0;
+
+
+    // *******************************
+    // Queue all tests here
 
     testQueue.push(testDownload);
     testQueue.push(testUpdateRecord);
     testQueue.push(testSyncConflict);
+
+    testQueue.push(testForLocalDataLoss);
 
     // missing tests
     //testQueue.push(testFolderSetup);
     //testQueue.push(testExportConfig);
     //testQueue.push(testUpgradeNeeded);
 
+    // *******************************
+
+
+    var totalTests = testQueue.length;
+
     function testDone(passed) {
         if (passed) {
+            testsPassed++;
             nextTest = testQueue.shift();
             if (nextTest) {
                 nextTest(testDone);
             } else {
+                logger.test("Tests passed: " + testsPassed);
+                logger.test("Tests failed: 0");
                 logger.test("Testing Complete.".green);
+
                 process.exit(1);
             }
         } else {
-            logger.test("TESTS FAILED. Stopping tests.");
+            logger.test("Tests passed: " + testsPassed);
+            logger.test("Tests failed: " + (totalTests - testsPassed));
+            logger.test("TESTS FAILED. Stopping tests.".red);
+
             process.exit(1);
         }
     }
 
     logger.test(('Running ' + testQueue.length + ' test(s).').bold);
-    logger.test('Test file in use: %j', testFile);
+    logger.test('Test file in use:', testFile);
 
     // start tests
     nextTest = testQueue.shift();
@@ -61,7 +80,7 @@ function getTestFile(callback) {
     var testFilePath = getTestFilePath();
 
     logger.test('Creating test file: ' + testFilePath);
-    api.addFile(testFilePath, false, callback);
+    api.addFile(testFilePath, callback);
 }
 
 function getRoot() {
@@ -112,13 +131,13 @@ function testUpdateRecord(callback) {
     var snc = api.getSncClient(getRoot());
     var file = getTestFilePath();
 
-    var uniqueString = 'FileSync test (' + moment().format('x') + ')';
+    var uniqueString = 'FileSync testUpdateRecord (' + moment().format('x') + ')';
 
     getTestFile(fileAdded);
 
     function fileAdded(complete) {
         if (complete) {
-            updateLocalFile();
+            updateLocalFile(file, uniqueString);
         } else {
             logger.test('[FAIL]:'.red + ' testUpdateRecord()');
             callback(complete);
@@ -126,10 +145,10 @@ function testUpdateRecord(callback) {
 
     }
 
-    function updateLocalFile() {
+    function updateLocalFile(file, additionalContent) {
         api.readFile(file, function (data) {
             var body = {
-                'script': data + "\n// " + uniqueString
+                'script': data + "\n// " + additionalContent
             };
 
             api.writeFile(file, body.script, function (fileWritten) {
@@ -181,7 +200,7 @@ function testSyncConflict(callback) {
 
     var snc = api.getSncClient(getRoot());
     var file = getTestFilePath();
-    var uniqueString = 'FileSync test (' + moment().format('x') + ')';
+    var uniqueString = 'FileSync testSyncConflict (' + moment().format('x') + ')';
 
     api.readFile(file, function (data) {
         var body = {
@@ -218,6 +237,74 @@ function testSyncConflict(callback) {
             callback(true);
         }
     }
+}
+
+/*
+ * Some File I/O ops can confuse the watcher ("atomic save") so we have implemented
+ * functionality to ensure files with content are not overwritten. This should test that.
+ *
+ * 1. Get test file
+ * 2. Update local file content
+ * 3. Simulate sending file that has been flagged as "newly discovered"
+ *   .. should cause an upload
+ *
+ * Note: no need to retest functions using addFile() as new logic is only in
+ * watcher function.
+ *  "fileRecords[file].setNewlyDiscoveredFile(true);"
+ *
+ */
+function testForLocalDataLoss(callback) {
+    logger.test('TEST RUNNING: testForLocalDataLoss()'.yellow);
+
+    var testFilePath = getTestFilePath();
+
+    // add our file
+    getTestFile(function (resp) {
+
+        if (resp) {
+            var uniqueString = 'FileSync testForLocalDataLoss (' + moment().format('x') + ')';
+
+            // now modify the file
+            // (assume no call back needed because file read+write should be faster than getTestFile())
+            updateLocalFile(testFilePath, uniqueString);
+
+            logger.test('Simulating found file via addFile() call');
+
+            getTestFile(function (success) {
+                if (success) {
+                    logger.test('[PASS]:'.green + ' testForLocalDataLoss() - we were able to avoid overwriting a changed file.');
+                } else {
+                    logger.test('[FAIL]:'.red + ' testForLocalDataLoss() - could not send changed file');
+                }
+                callback(success);
+            });
+        } else {
+            callback(false);
+        }
+    });
+
+
+    function updateLocalFile(file, additionalContent) {
+        api.readFile(file, function (data) {
+            var body = {
+                'script': data + "\n// " + additionalContent
+            };
+
+            api.writeFile(file, body.script, function (fileWritten) {
+                if (fileWritten) {
+                    logger.test('Updated local file. Setting file as "newly discovered".');
+
+                    var fileObj = api.trackFile(testFilePath);
+                    fileObj.setNewlyDiscoveredFile(true);
+
+                } else {
+                    logger.test('[FAIL]:'.red + ' testForLocalDataLoss() - could not update local file contents');
+                    callback(false);
+                }
+            });
+        });
+    }
+
 }
 
 module.exports = runTests;
