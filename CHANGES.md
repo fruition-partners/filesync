@@ -1,5 +1,9 @@
 # FileSync Changes
 
+* 2015-10-14 (**Version 2.4.9**)
+ * Fix osx-notifier issue where record names starting with symbols crashed the notification app on mac (fixes #9)
+   * If your record is like "(Keyfile)" then the notifcation will show "_(Keyfile)".
+
 * 2015-10-13 (**Version 2.4.8**)
  * Fix password encoding issue occuring when not specifying a config path (fixes #10)
 

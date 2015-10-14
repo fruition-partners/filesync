@@ -121,6 +121,17 @@ function notifyUser() {
         }
 
         if (isMac) {
+            // osx-notify can't handle messages that start with a symbol. Fix that here.
+            // test case: "(KeyFile)" should then be "_(KeyFile)". "KeyFile" should be ignored.
+            var firstChar = notifyArgs.message.charAt(0),
+                workaround = firstChar.replace(/^[^a-z]{0,1}/i, "_");
+            if (workaround.length == 2) {
+                // no issue (node js decided to prefix the '_' causing '_K' instead of '_')
+            } else {
+                // accepted first symbol by osx-notify is '_'
+                notifyArgs.message = '_' + notifyArgs.message;
+            }
+
             notify(notifyArgs);
         } else {
             // windows support?
