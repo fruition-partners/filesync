@@ -102,6 +102,12 @@ function getConfig() {
     }
 
     configValid(config);
+
+    // make it easier to find the root property
+    roots.forEach(function (root) {
+        config.roots[root].root = root;
+    });
+
     return config;
 }
 

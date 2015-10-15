@@ -80,10 +80,10 @@ method.getFileName = function () {
 };
 
 // track if a file has been discovered by the watcher or not as a "new" record field to download
-method.setNewlyDiscoveredFile = function(isNew) {
+method.setNewlyDiscoveredFile = function (isNew) {
     this._isNewFile = isNew;
 };
-method.isNewlyDiscoveredFile = function() {
+method.isNewlyDiscoveredFile = function () {
     return this._isNewFile;
 };
 
@@ -181,7 +181,7 @@ method.getSyncMap = function () {
     map.keyValue = fieldMap.keyValue;
     map.fileName = fieldMap.keyValue;
     // special sass case
-    if (this.isSCSS()) {
+    if (isSCSS(this.filePath)) {
         map.keyValue += '_scss';
     }
     map.field = fieldMap.field;
@@ -190,8 +190,9 @@ method.getSyncMap = function () {
     return map;
 };
 
-method.isSCSS = function () {
-    if (this.filePath.indexOf('.scss') > 0) {
+function isSCSS(filePath) {
+    // can check both filePath and record name
+    if (filePath.indexOf('.scss') > 0 || filePath.indexOf('_scss') >= 0) {
         return true;
     }
     return false;
@@ -212,5 +213,6 @@ method.addError = function (str) {
 
 module.exports = {
     FileRecord: FileRecord,
-    makeHash: makeHash
+    makeHash: makeHash,
+    isSCSS: isSCSS
 };

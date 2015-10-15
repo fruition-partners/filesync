@@ -96,25 +96,6 @@ function init() {
             process.exit(1);
         }
 
-        // experimental search option (needs testing and cleanup)
-        if (argv.search) {
-            var queryObj = {
-                query: argv.search_query || '',
-                table: argv.search_table || '',
-                download: argv.download || false,
-                rows: argv.search_rows || false,
-                demo: argv.search_demo || false
-            };
-            var roots = config.roots,
-                keys = Object.keys(roots),
-                firstRoot = keys[0]; // support first root for now
-
-            var snc = getSncClient(firstRoot);
-
-            var s = new Search(config, snc);
-            s.getResults(queryObj);
-            return;
-        }
 
         if (argv.test) {
             logit.info('TEST MODE ACTIVATED'.green);
@@ -150,6 +131,29 @@ function init() {
             addConfigFiles();
         }
 
+        // experimental search option (needs testing and cleanup)
+        if (argv.search) {
+
+            var queryObj = {
+                query: argv.search_query || '',
+                table: argv.search_table || '',
+                download: argv.download || false,
+                rows: argv.records_per_search || false,
+                demo: argv.search_demo || false
+            };
+
+            logit.info('Performing search'.green);
+            logit.info(queryObj);
+
+            logit.info("Note: only the first root defined is supported for searching.\n".yellow);
+            var firstRoot = getFirstRoot(),
+                snc = getSncClient(firstRoot); // support first root for now
+
+            var s = new Search(config, snc);
+            s.getResults(queryObj, processFoundRecords);
+            return;
+        }
+
         // callback dependency
         if (argv.resync || config._resyncFiles) {
             // retest this!
@@ -174,6 +178,29 @@ function init() {
     upgradeNeeded(config, start);
 }
 
+function getFirstRoot() {
+    var roots = config.roots,
+        keys = Object.keys(roots),
+        firstRoot = keys[0];
+    return firstRoot;
+}
+
+function processFoundRecords(queryObj, records) {
+    var firstRoot = getFirstRoot(),
+        basePath = config.roots[firstRoot].root;
+
+    for (var i in records) {
+        var record = records[i];
+        var filePath = basePath + '/' + record.fileName;
+        logit.info('File to create: ' + filePath);
+        if (queryObj.download) {
+            addFile(filePath);
+        }
+    }
+    if (!queryObj.download) {
+        process.exit(1);
+    }
+}
 
 /*
  * Get a list of all the files and add it to "filesToPreLoad"
@@ -467,6 +494,7 @@ function receive(file, allDoneCallBack) {
             return false;
         }
 
+        /* legacy concept no longer needed
         if (obj.records[0][db.field].length < 1) {
             logit.info('**WARNING : this record is 0 bytes'.red);
             fileRecords[file].addError('This file was downloaded as 0 bytes. Ignoring sync. Restart FileSync and then make changes to upload.');
@@ -478,6 +506,7 @@ function receive(file, allDoneCallBack) {
                 open: fileRecords[file].getRecordUrl()
             });
         }
+        */
         logit.info('Received:'.green, db);
 
         //logit.info('Record name: '+obj.records[0].name);
@@ -692,7 +721,7 @@ function addFile(file, callback) {
         }
     };
 
-    logit.info('Syncing empty file from instance', file);
+    logit.info('Syncing record from instance to file', file);
     receive(file, callback);
 }
 
