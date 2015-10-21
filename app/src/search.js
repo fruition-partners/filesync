@@ -91,10 +91,12 @@ method.getResults = function (queryObj, callback) {
         snc.table(locDB.table).getRecords(locDB, function (err, obj) {
             if (err) {
                 logger.info('ERROR in query.'.red);
+                cb([]);
                 return;
             }
             if (obj.records.length === 0) {
-                logger.info('No records found:'.yellow);
+                logger.info('No records found on %s:'.yellow, locDB.table);
+                cb([]);
                 return;
             }
 
