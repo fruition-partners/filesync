@@ -185,20 +185,41 @@ function getFirstRoot() {
     return firstRoot;
 }
 
-function processFoundRecords(queryObj, records) {
+function processFoundRecords(searchObj, queryObj, records) {
     var firstRoot = getFirstRoot(),
         basePath = config.roots[firstRoot].root;
 
     for (var i in records) {
-        var record = records[i];
+        var record = records[i],
+            recordData = record.recordData;
+
         var filePath = basePath + '/' + record.fileName;
         logit.info('File to create: ' + filePath);
+
         if (queryObj.download) {
-            addFile(filePath);
+            saveFoundFile(filePath, recordData);
         }
     }
     if (!queryObj.download) {
         process.exit(1);
+    }
+
+    function saveFoundFile(file, data) {
+
+        trackFile(file);
+        fileRecords[file].saveHash(data, function (saved) {
+            if (!saved) {
+                logit.error('Failed to write out hash file for %s', file);
+            }
+        });
+
+        fs.outputFile(file, data, function (err) {
+            if (err) {
+                logit.error('Failed to write out file %s', file);
+                return;
+            }
+            logit.info('Saved file %s', file)
+        });
     }
 }
 

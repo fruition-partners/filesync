@@ -11,12 +11,12 @@ function Search(config, snc) {
     this.logger = config._logger;
 }
 
-
 method.getResults = function (queryObj, callback) {
     var logger = this.logger,
         snc = this.snc,
         config = this.config,
-        recordsFound = [],
+        recordsFound = {},
+        _this = this,
         db = {
             table: queryObj.table || '',
             field: queryObj.field || 'script', // default
@@ -42,9 +42,10 @@ method.getResults = function (queryObj, callback) {
         callCount--;
         // only callback once all queries have completed
         if (callCount <= 0) {
-            logger.info('Total records found: %s'.green, recordsFound.length);
+            var len = Object.keys(recordsFound).length;
+            logger.info('Total records found: %s'.green, len);
             logger.info('(max records returned per search set to %s)', db.rows);
-            callback(queryObj, recordsFound);
+            callback(_this, queryObj, recordsFound);
         }
     }
 
@@ -91,6 +92,7 @@ method.getResults = function (queryObj, callback) {
         snc.table(locDB.table).getRecords(locDB, function (err, obj) {
             if (err) {
                 logger.info('ERROR in query.'.red);
+                logger.info(err);
                 cb([]);
                 return;
             }
@@ -104,7 +106,8 @@ method.getResults = function (queryObj, callback) {
             for (i in obj.records) {
                 var record = obj.records[i],
                     recordName = record[locDB.key],
-                    fileName = locDB.folder + '/' + recordName + '.' + locDB.fieldSuffix;
+                    fileName = locDB.folder + '/' + recordName + '.' + locDB.fieldSuffix,
+                    recordData = record[fieldName];
 
                 logger.debug('Record Found: "' + recordName + '"');
                 logger.debug('- Created on ' + record.sys_created_on);
@@ -115,9 +118,10 @@ method.getResults = function (queryObj, callback) {
                     continue; // skip, not applicable for this folder
                 }
 
-                recordsFound.push({
-                    fileName: fileName
-                });
+                recordsFound[fileName] = {
+                    fileName: fileName,
+                    recordData: recordData
+                };
             }
 
             logger.info('Found %s records for %s'.green, (i * 1 + 1), locDB.table);
