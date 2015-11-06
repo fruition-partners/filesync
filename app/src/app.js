@@ -139,8 +139,20 @@ function init() {
                 table: argv.search_table || '',
                 download: argv.download || false,
                 rows: argv.records_per_search || false,
-                demo: argv.search_demo || false
             };
+
+            // support search via config file
+            if (argv.search.length > 0 && config.search[argv.search]) {
+                var searchObj = config.search[argv.search];
+                queryObj.query = searchObj.query || queryObj.query;
+                queryObj.table = searchObj.table || queryObj.table;
+                queryObj.download = searchObj.download || queryObj.download;
+                queryObj.rows = searchObj.records_per_search || queryObj.rows;
+            } else {
+                logit.info('Note: running in demo mode as no defined search in your config file was found/specified.'.yellow)
+                queryObj.demo = true;
+            }
+
 
             logit.info('Performing search'.green);
             logit.info(queryObj);
@@ -187,7 +199,8 @@ function getFirstRoot() {
 
 function processFoundRecords(searchObj, queryObj, records) {
     var firstRoot = getFirstRoot(),
-        basePath = config.roots[firstRoot].root;
+        basePath = config.roots[firstRoot].root,
+        totalFilesToSave = 0;
 
     for (var i in records) {
         var record = records[i],
@@ -197,6 +210,7 @@ function processFoundRecords(searchObj, queryObj, records) {
         logit.info('File to create: ' + filePath);
 
         if (queryObj.download) {
+            totalFilesToSave++;
             saveFoundFile(filePath, recordData);
         }
     }
@@ -214,11 +228,18 @@ function processFoundRecords(searchObj, queryObj, records) {
         });
 
         fs.outputFile(file, data, function (err) {
+            totalFilesToSave--;
             if (err) {
                 logit.error('Failed to write out file %s', file);
                 return;
             }
             logit.info('Saved file %s', file)
+
+            // done writing out files.
+            if (totalFilesToSave <= 0) {
+                logit.info('Finished creating files.');
+                process.exit(1);
+            }
         });
     }
 }

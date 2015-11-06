@@ -1,4 +1,4 @@
-FileSync (2.4.10)
+FileSync (v3.0)
 =================
 
 
@@ -18,6 +18,11 @@ FileSync (2.4.10)
    * [Specifying a config file](#specifying-a-config-file)
    * [Exporting current setup](#exporting-current-setup)
    * [SASS CSS pre-compiler support](#sass-css-pre-compiler-support)
+ * [Search and download](#search-and-download)
+   * [Search Overview](#search-overview)
+   * [Search Usage](#search-usage)
+   * [Search Command Line Usage](#search-command-line-usage)
+   * [Tips for Searching](#tips-for-searching)
  * [Road Map](#road-map)
  * [Contribution workflow](#contribution-workflow)
  * [Changes](#changes)
@@ -120,7 +125,7 @@ app.config.json file sample (see also app/app.config.json):
         // maps a root (project) folder to an instance
         "roots": {
             "c:/dev/project_a": {                   // full path to root folder
-                                                    // on Windows, ensure that forward slases are used!
+                                                    // on Windows, ensure that forward slashes are used!
                 "host": "demo001.service-now.com",  // instance host name
                 "user": "admin",                    // instance credentials
                 "pass": "admin"                     // encoded to auth key and re-saved at runtime
@@ -293,6 +298,73 @@ On the instance you then simply create 2 themes. One that is used by your CMS (w
 
 Using this setup ensures that the customer will have all the files needed to do further development in case they want to use SASS or plain CSS files. If another developer wanted to work on the theme but didn't have compass/SASS configured then they could use an extra CSS record/file.
 
+## Search and Download
+
+### Search Overview
+
+The search feature supports 3 activites:
+ 1. **Demo** mode to test out the tool and your connection.
+ 1. **Custom search** that works with sysparm_query and your desired table(s) to search for records. Note that by default all tables defined under the ```folders``` config are searched if the ```table``` option is not provided.
+ 1. **Download** option. Set to true when the search results match what you want in order to start syncing. When false or not set the search system displays found results but will not save the records to files.
+
+Additionally it's possible to set the max amount of records returned per search (instance default is normally 10,000) and specify a specific table to search on (so long as it's mapped in your *folders* config).
+
+### Search Usage
+
+The search component enforces using the config file instead of the command line to define the search criteria. This helps by saving commonly used search settings. Below is a sample configuration that also exists in the default config file. Note that the query used is exactly the same as the **sysparm_query** used when filtering list views or when working with **encoded queries**.
+
+```javascript
+
+    "roots": { ... },
+    "search": {
+        "mine": {
+            "query": "sys_updated_by=admin",
+            "records_per_search": "3",
+            "download": true
+        },
+        "team": {
+            "query": "sys_created_on>javascript:gs.dateGenerate('2015-03-25','23:59:59')^sys_created_by!=javascript:gs.getUserName()^sys_updated_by!=javascript:gs.getUserName()^sys_created_by!=admin^ORDERBYDESCsys_updated_on",
+            "records_per_search": "100",
+        },
+        "script-includes": {
+            "table": "sys_script_include", // limit to just one table
+            "query": "sys_created_on>javascript:gs.dateGenerate('2015-03-25','23:59:59')",
+            "records_per_search": "1",
+            "download": true // download all founds results
+        }
+    },
+
+```
+
+### Search Command Line Usage
+
+ * Test the search system in demo mode:
+ ```
+ ./node-darwin --config ~/my-conf.json --search
+ ```
+ * Search based on a pre-defined search config (defined in *my-conf.json*):
+ ```
+ ./node-darwin --config ~/my-conf.json --search mine
+ ```
+ * Download records found via search (overwrites existing local files if they exist):
+```
+./node-darwin --config ~/my-conf.json --search mine --download
+```
+
+Note that the defaults are to search in demo mode without downloading any records.
+
+### Tips for Searching
+
+Search unlocks a great deal of potential. Here are some ideas showing how you can benefit from using search.
+
+* No need to create your files anymore. Simply always use search to download all files created or updated by you.
+* Bulk updates? Simply download all the records created since instance development started and use your favourite editor to bulk search and replace. 1000 records could take seconds compared to the hours via the instance interface.
+* Look for bad practice. Search across all tables of interest for scripts that don't use best practice naming conventions.
+ * Run your own health report. Download all fields of interest and then run your own RegEx queries to look for configuration issues.
+* Quickly and easily take over from a colleague. If they are going on holiday then just download the records they worked on recently and not worry about them forgetting to tell you where the important stuff is!
+* Export all description content or story content or ANY attribute from any table in bulk. Could identify documentation issues.
+ * Export entire records but only the fields of interest. Eg, description field, script field, last modification date etc.
+
 
 ## Road Map
 
@@ -316,12 +388,12 @@ Considering ServiceNow does not handle merge conflicts at all, this is a major g
 
 Nice to haves
 - [x] auto create folder structure for user (```./node-darwin src/app --setup```)
-- [ ] add record browser to automatically download chosen files.
+- [x] add record browser to automatically download chosen files (via ```--search``` option)
 - [x] option to re-download all files from instance (```./node-darwin src/app --resync```)
-- [ ] auto download records created or updated by a given user ID
+- [x] auto download records created or updated by a given user ID (via ```--search``` option)
 - [x] notifications are clickable and load the record in the browser
 - [ ] offline support? (keep track of files that are queued to upload when the connection is available again and retry).. maybe not. This could be dangerous if records get updated without someone to test them. Potentially workable if the last queued file is less than 3 minutes ago to cater for flaky mobile/roaming connections.
-- [ ] save meta data recieved in request for user info (eg, sys_updated_on, sys_updated_by, sys_mod_count, description)
+- [ ] save meta data received in request for user info (eg, sys_updated_on, sys_updated_by, sys_mod_count, description)
 - [ ] config option to log details to log file (help others send log info)
 - [x] download records on startup provided by a list (See ```"preLoad"``` in app.config.json)
 - [ ] add windows support for fancy/OS style notifications
@@ -360,6 +432,7 @@ FileSync was built using [Node.js](http://nodejs.org/), a platform built on Chro
 * app/app.config.json - default/sample configuration file to specify instance connection details and other options
 * app/node_modules - folder containing 3rd-party node.js modules (from NPM) used to build app
 * app/src/app.js - main application that watches for file changes
+* app/src/search.js - manages querying for data (utilises sysparm_query)
 * app/src/notify.js - user friendly system notifications when records have been downloaded or updated
 * app/src/upgrade.js - ensures that users that upgrade can easily resolve *breaking* changes
 * app/src/records.config.json - default folder definitions (that can be overwritten in app.config.json files)

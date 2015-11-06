@@ -1,5 +1,9 @@
 # FileSync Changes
 
+* 2015-11-06 (**Version 3.0** :mushroom:)
+ * Fully enable search because I love being productive! (more details in readme)
+
+
 * 2015-10-14 (**Version 2.4.10**)
  * Fix rare race condition with File I/O processes that sometimes caused changed files to be overwritten instead of uploaded
 

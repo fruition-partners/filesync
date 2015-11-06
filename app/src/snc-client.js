@@ -97,9 +97,9 @@ function sncClient(config) {
             if (obj.error) {
                 logger.error('ERROR found in obj.error : ', obj.error);
                 // DP TODO : Investigate: Error: json object is null
-                //return new Error(obj.error);
+                return new Error(obj.error);
                 // this is actually not an error! It's just that the server didn't return anything to us
-                return null;
+                //return null;
             }
             if (!obj.records) {
                 return new Error(util.format('Response missing "records" key: %j\nCheck server logs.', obj));

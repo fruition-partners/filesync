@@ -19,10 +19,16 @@ method.getResults = function (queryObj, callback) {
         _this = this,
         db = {
             table: queryObj.table || '',
-            field: queryObj.field || 'script', // default
             query: queryObj.query || '',
             rows: queryObj.rows || 5 // default
         };
+
+    var table = '',
+        folObj,
+        fieldInList,
+        fields,
+        callCount = 0;
+
 
     if (queryObj.demo) {
         logger.info('- - - - Running in Demo mode - - - -'.yellow);
@@ -31,12 +37,6 @@ method.getResults = function (queryObj, callback) {
         queryObj.table = db.table;
         logger.info('Using search options: ', db);
     }
-
-    var table = '',
-        folObj,
-        fieldInList,
-        fields,
-        callCount = 0;
 
     function receivedRecords(records) {
         callCount--;
@@ -71,10 +71,6 @@ method.getResults = function (queryObj, callback) {
             callCount++;
             getRecords(fields[fieldInList], db, receivedRecords);
         }
-
-        if (queryObj.table && table == db.table) {
-            break; // we were only looking for one/this table
-        }
     }
 
     if (queryObj.table && callCount === 0) {
@@ -91,7 +87,7 @@ method.getResults = function (queryObj, callback) {
 
         snc.table(locDB.table).getRecords(locDB, function (err, obj) {
             if (err) {
-                logger.info('ERROR in query.'.red);
+                logger.info('ERROR in query or response.'.red);
                 logger.info(err);
                 cb([]);
                 return;
@@ -113,8 +109,12 @@ method.getResults = function (queryObj, callback) {
                 logger.debug('- Created on ' + record.sys_created_on);
                 logger.debug('- Updated by ' + record.sys_updated_by + ' on ' + record.sys_updated_on);
 
+                var isSCSSRecord = FileRecordUtil.isSCSS(recordName);
                 // check that it is really a SCSS file and not a CSS file!
-                if (locDB.fieldSuffix == 'scss' && !FileRecordUtil.isSCSS(recordName)) {
+                if (locDB.fieldSuffix == 'scss' && !isSCSSRecord) {
+                    continue; // skip, not applicable for this folder
+                }
+                if (locDB.fieldSuffix == 'css' && isSCSSRecord) {
                     continue; // skip, not applicable for this folder
                 }
 
