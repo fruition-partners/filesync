@@ -1,5 +1,9 @@
 # FileSync Changes
 
+* 2015-11-16 (**Version 3.0.1**)
+ * Fix issue with search where 0 byte files (no proper record data) were causing issues
+
+
 * 2015-11-06 (**Version 3.0** :mushroom:)
  * Fully enable search because I love being productive! (more details in readme)
 

@@ -204,14 +204,22 @@ function processFoundRecords(searchObj, queryObj, records) {
 
     for (var i in records) {
         var record = records[i],
-            recordData = record.recordData;
+            recordData = record.recordData,
+            validData = recordData.length > 0;
 
         var filePath = basePath + '/' + record.fileName;
-        logit.info('File to create: ' + filePath);
+        if (validData) {
+            logit.info('File to create: ' + filePath);
+        } else {
+            logit.info('Found but will ignore due to no content: ' + filePath);
+        }
 
         if (queryObj.download) {
-            totalFilesToSave++;
-            saveFoundFile(filePath, recordData);
+            // don't save files of 0 bytes as this will confuse everyone
+            if (validData) {
+                totalFilesToSave++;
+                saveFoundFile(filePath, recordData);
+            }
         }
     }
     if (!queryObj.download) {
@@ -536,7 +544,7 @@ function receive(file, allDoneCallBack) {
             return false;
         }
 
-        /* legacy concept no longer needed
+        // legacy concept (still needed??... TODO: don't allow creation of 0 byte files!)
         if (obj.records[0][db.field].length < 1) {
             logit.info('**WARNING : this record is 0 bytes'.red);
             fileRecords[file].addError('This file was downloaded as 0 bytes. Ignoring sync. Restart FileSync and then make changes to upload.');
@@ -548,7 +556,7 @@ function receive(file, allDoneCallBack) {
                 open: fileRecords[file].getRecordUrl()
             });
         }
-        */
+
         logit.info('Received:'.green, db);
 
         //logit.info('Record name: '+obj.records[0].name);
