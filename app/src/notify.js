@@ -5,11 +5,14 @@
  */
 
 var isMac = /^darwin/.test(process.platform);
-//var isWin = /^win/.test(process.platform);
+var isWin = /^win/.test(process.platform);
 
 if (isMac) {
     var notify = require('osx-notifier');
+} else if (isWin) {
+    var notifier = require('node-notifier');
 }
+
 var debug = false;
 
 function notifyUser() {
@@ -40,9 +43,9 @@ function notifyUser() {
             console.log('notifying with code: ' + code);
         }
 
-        var notifyArgs = {};
+
         // default response
-        notifyArgs = {
+        var notifyArgs = {
             type: 'info',
             title: 'Unknown Notification',
             subtitle: 'WTF?',
@@ -133,9 +136,19 @@ function notifyUser() {
             }
 
             notify(notifyArgs);
-        } else {
+
+        } else if (isWin) {
             // windows support?
             // linux support?
+
+            var type = notifyArgs.type == 'fail' ? 'error' : 'info';
+            notifier.notify({
+                'title': notifyArgs.title,
+                'message': notifyArgs.message,
+                'sound': true,
+                't': type
+            });
+
         }
     }
 
