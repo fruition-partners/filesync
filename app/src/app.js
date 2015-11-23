@@ -931,7 +931,7 @@ function watchFolders() {
             chokiWatcherReady = true;
         })
         .on('error', function (error) {
-            logit.error('Error watching files: %s'.red, error);
+            logit.error('Error watching files:'.red, error);
         });
     // TODO : clear up old hash files when files removed..
     // .on('unlink', function(path) {logit.info('File', path, 'has been removed');})
