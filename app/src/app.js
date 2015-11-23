@@ -90,6 +90,11 @@ function init() {
         notifyObj.setDebug();
     }
 
+    // Apply custom file watcher ignore rules
+    if (config.ignoreFiles) {
+        chokiWatcherIgnore = config.ignoreFiles;
+    }
+
     function start(upgradeBlocks) {
         if (upgradeBlocks) {
             logit.error('Upgrade is needed. Please check the Readme and change logs online.'.red);
