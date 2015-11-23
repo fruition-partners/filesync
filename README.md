@@ -1,4 +1,4 @@
-FileSync (v3.0.1)
+FileSync (v3.0.2)
 =================
 
 
@@ -150,6 +150,7 @@ app.config.json file sample (see also app/app.config.json):
         "createAllFolders": true,                   // create local folders to save on manual effort
 
         "debug": false                              // set to true to enable more detailed debug logging
+        "ignoreList": ["**/.*"]                     // define what files are not tracked for changes
     }
 ```
 

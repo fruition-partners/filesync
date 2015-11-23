@@ -1,5 +1,9 @@
 # FileSync Changes
 
+* 2015-11-23 (**Version 3.0.2**)
+ * Support custom "ignoreFile" config option for file watcher (thanks to @dwightgunning)
+
+
 * 2015-11-16 (**Version 3.0.1**)
  * Fix issue with search where 0 byte files (no proper record data) were causing issues
 
