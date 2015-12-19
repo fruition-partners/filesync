@@ -196,7 +196,7 @@ function isSCSS(filePath) {
         return true;
     }
     return false;
-};
+}
 
 method.validFile = function () {
     return this.getSyncMap();

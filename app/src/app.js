@@ -906,7 +906,11 @@ function instanceInSync(snc, db, map, file, newData, callback) {
             obj.inSync = true;
             obj.noPushNeeded = true;
             // update local hash.
-            fileRecords[file].saveHash(newData);
+            fileRecords[file].saveHash(newData, function(saved) {
+                if(!saved) {
+                    logit.error('Failed to update hash file for %s', file);
+                }
+            });
 
             // CASE 2. the last local downloaded version matches the server version (stanard collision test scenario)
         } else if (remoteHash == previousLocalVersionHash) {
