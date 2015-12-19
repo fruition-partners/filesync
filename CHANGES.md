@@ -1,5 +1,8 @@
 # FileSync Changes
 
+* 2015-12-19 (**Version 3.0.3**)
+ * Fix search issue where sync data records were not being saved on slow machines (File I/O racing is bad)
+
 * 2015-11-23 (**Version 3.0.2**)
  * Support custom "ignoreFile" config option for file watcher (thanks to @dwightgunning)
 

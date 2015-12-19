@@ -154,7 +154,7 @@ function init() {
                 queryObj.download = searchObj.download || queryObj.download;
                 queryObj.rows = searchObj.records_per_search || queryObj.rows;
             } else {
-                logit.info('Note: running in demo mode as no defined search in your config file was found/specified.'.yellow)
+                logit.info('Note: running in demo mode as no defined search in your config file was found/specified.'.yellow);
                 queryObj.demo = true;
             }
 
@@ -205,7 +205,8 @@ function getFirstRoot() {
 function processFoundRecords(searchObj, queryObj, records) {
     var firstRoot = getFirstRoot(),
         basePath = config.roots[firstRoot].root,
-        totalFilesToSave = 0;
+        totalFilesToSave = 0,
+        totalErrors = 0;
 
     for (var i in records) {
         var record = records[i],
@@ -217,6 +218,7 @@ function processFoundRecords(searchObj, queryObj, records) {
             logit.info('File to create: ' + filePath);
         } else {
             logit.info('Found but will ignore due to no content: ' + filePath);
+            totalErrors++;
         }
 
         if (queryObj.download) {
@@ -231,29 +233,49 @@ function processFoundRecords(searchObj, queryObj, records) {
         process.exit(1);
     }
 
+    // save both the sync hash file and record as file.
     function saveFoundFile(file, data) {
 
-        trackFile(file);
+        if (!trackFile(file)) {
+            logit.error('File (path) is not valid %s', file);
+            totalFilesToSave--;
+            totalErrors++;
+            return;
+        }
+
         fileRecords[file].saveHash(data, function (saved) {
             if (!saved) {
-                logit.error('Failed to write out hash file for %s', file);
+                logit.error('Failed to write out sync data file for %s', file);
+                totalFilesToSave--;
+                totalErrors++;
+            } else {
+                // no issues writing sync file so write out record to file
+
+                fs.outputFile(file, data, function (err) {
+                    totalFilesToSave--;
+                    if (err) {
+                        logit.error('Failed to write out file %s', file);
+                        totalErrors++;
+                    } else {
+                        logit.info('Saved file %s', file);
+                    }
+
+                    // done writing out files.
+                    if (totalFilesToSave <= 0) {
+                        doneSaving();
+                    }
+                });
             }
         });
+    }
 
-        fs.outputFile(file, data, function (err) {
-            totalFilesToSave--;
-            if (err) {
-                logit.error('Failed to write out file %s', file);
-                return;
-            }
-            logit.info('Saved file %s', file)
-
-            // done writing out files.
-            if (totalFilesToSave <= 0) {
-                logit.info('Finished creating files.');
-                process.exit(1);
-            }
-        });
+    function doneSaving() {
+        if (totalErrors > 0) {
+            logit.warn('Finished creating files with errors. %s file(s) failed to save or had 0 bytes as content (see output above).', totalErrors);
+        } else {
+            logit.info('Finished creating files.');
+        }
+        process.exit(1);
     }
 }
 

@@ -16,6 +16,7 @@ function runTests(apiObj, configObj) {
     api = apiObj;
     config = configObj;
     logger = configObj._logger;
+
     var testQueue = [],
         nextTest,
         testsPassed = 0;
@@ -34,6 +35,7 @@ function runTests(apiObj, configObj) {
     //testQueue.push(testFolderSetup);
     //testQueue.push(testExportConfig);
     //testQueue.push(testUpgradeNeeded);
+    //testQueue.push(testSearch);
 
     // *******************************
 
