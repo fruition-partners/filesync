@@ -210,8 +210,7 @@ function processFoundRecords(searchObj, queryObj, records) {
 
     for (var i in records) {
         var record = records[i],
-            recordData = record.recordData,
-            validData = recordData.length > 0;
+            validData = record.recordData.length > 0;
 
         var filePath = basePath + '/' + record.fileName;
         if (validData) {
@@ -225,7 +224,7 @@ function processFoundRecords(searchObj, queryObj, records) {
             // don't save files of 0 bytes as this will confuse everyone
             if (validData) {
                 totalFilesToSave++;
-                saveFoundFile(filePath, recordData);
+                saveFoundFile(filePath, record);
             }
         }
     }
@@ -234,7 +233,9 @@ function processFoundRecords(searchObj, queryObj, records) {
     }
 
     // save both the sync hash file and record as file.
-    function saveFoundFile(file, data) {
+    function saveFoundFile(file, record) {
+
+        var data = record.recordData;
 
         if (!trackFile(file)) {
             logit.error('File (path) is not valid %s', file);
@@ -242,6 +243,12 @@ function processFoundRecords(searchObj, queryObj, records) {
             totalErrors++;
             return;
         }
+
+        fileRecords[file].updateMeta({
+            sys_id: record.sys_id,
+            sys_updated_on: record.sys_updated_on,
+            sys_updated_by: record.sys_updated_by
+        });
 
         fileRecords[file].saveHash(data, function (saved) {
             if (!saved) {
@@ -906,8 +913,8 @@ function instanceInSync(snc, db, map, file, newData, callback) {
             obj.inSync = true;
             obj.noPushNeeded = true;
             // update local hash.
-            fileRecords[file].saveHash(newData, function(saved) {
-                if(!saved) {
+            fileRecords[file].saveHash(newData, function (saved) {
+                if (!saved) {
                     logit.error('Failed to update hash file for %s', file);
                 }
             });

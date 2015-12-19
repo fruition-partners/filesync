@@ -16,6 +16,7 @@ function FileRecord(config, file) {
     this.rootDir = this.getRoot();
     this.errorList = [];
     this.logger = config._logger;
+    this.meta = {};
 
     // assume all files already exist (toggled by watcher)
     this.setNewlyDiscoveredFile(false);
@@ -105,19 +106,27 @@ method.getLocalHash = function () {
     return '';
 };
 
+method.updateMeta = function (obj) {
+    var keys = Object.keys(obj);
+    for (var k in keys) {
+        var key = keys[k];
+        this.meta[key] = obj[key];
+    }
+    this.logger.debug('updated meta : ', this.meta);
+};
 
 method.saveHash = function (data, callback) {
     this.logger.debug('Saving meta/hash data for file: ' + this.filePath);
-    var metaData = {
+    this.updateMeta({
         syncHash: makeHash(data)
-    };
-    this._saveMeta(metaData, callback);
+    });
+
+    this._saveMeta(callback);
 };
 
-// todo : allow extending existing meta data
-method._saveMeta = function (metaData, callback) {
+method._saveMeta = function (callback) {
     var dataFile = this.getMetaFilePath();
-    var outputString = JSON.stringify(metaData);
+    var outputString = JSON.stringify(this.meta);
     var _this = this;
 
     fs.outputFile(dataFile, outputString, function (err) {

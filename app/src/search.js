@@ -98,9 +98,9 @@ method.getResults = function (queryObj, callback) {
                 return;
             }
 
-            var i;
-            for (i in obj.records) {
-                var record = obj.records[i],
+            var recordIndex;
+            for (recordIndex in obj.records) {
+                var record = obj.records[recordIndex],
                     recordName = record[locDB.key],
                     fileName = locDB.folder + '/' + recordName + '.' + locDB.fieldSuffix,
                     recordData = record[fieldName];
@@ -122,9 +122,16 @@ method.getResults = function (queryObj, callback) {
                     fileName: fileName,
                     recordData: recordData
                 };
+
+                var additionalProps = ['sys_id', 'sys_updated_on', 'sys_updated_by'];
+                for (var i = 0; i < additionalProps.length; i++) {
+                    var key = additionalProps[i];
+                    recordsFound[fileName][key] = record[key];
+                }
+
             }
 
-            logger.info('Found %s records for %s'.green, (i * 1 + 1), locDB.table);
+            logger.info('Found %s records for %s'.green, (recordIndex * 1 + 1), locDB.table);
 
             cb(obj.records);
 
