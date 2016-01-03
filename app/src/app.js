@@ -376,12 +376,15 @@ function addIfNotPresent(filePath) {
 
 
 function displayHelp() {
-    var msgs = ['--help           :: shows this message',
-                '--config <file>  :: specify a path to your app.config.json file',
-                '--setup          :: will create your folders for you',
-                '--test           :: will self test the tool and connection',
-                '--resync         :: will re-download all the files to get the latest server version',
-                 '--export <file>  :: export the current setup including downloaded records for quickstart'
+    var msgs = ['--help                   :: shows this message',
+                '--config <file>          :: specify a path to your app.config.json file',
+                '--setup                  :: will create your folders for you',
+                '--test                   :: will self test the tool and connection',
+                '--resync                 :: will re-download all the files to get the latest server version',
+                '--export <file>          :: export the current setup including downloaded records for quickstart',
+                '--search <search config> :: will run a search on the instance for matching records based on the defined search config in the app.config.json file',
+                '--download               :: applies to searching and will download the found records'
+
                ];
     console.log('Help'.green);
     console.log('List of options:');
