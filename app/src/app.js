@@ -580,7 +580,7 @@ function receive(file, allDoneCallBack) {
 
         // legacy concept (still needed??... TODO: don't allow creation of 0 byte files!)
         if (obj.records[0][db.field].length < 1) {
-            logit.info('**WARNING : this record is 0 bytes'.red);
+            logit.warn('**WARNING : this record is 0 bytes'.red);
             fileRecords[file].addError('This file was downloaded as 0 bytes. Ignoring sync. Restart FileSync and then make changes to upload.');
 
             notifyUser(msgCodes.RECEIVED_FILE_0_BYTES, {
