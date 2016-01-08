@@ -210,9 +210,16 @@ function processFoundRecords(searchObj, queryObj, records) {
 
     for (var i in records) {
         var record = records[i],
-            validData = record.recordData.length > 0;
+            filePath = basePath + '/' + record.fileName;
 
-        var filePath = basePath + '/' + record.fileName;
+        // seems like protected records that are read-only hide certain fields from view
+        if (typeof records[i].recordData == 'undefined') {
+            logit.warn('Found but will ignore to protected record: ' + filePath);
+            totalErrors++;
+            continue;
+        }
+
+        var validData = record.recordData.length > 0;
         if (validData) {
             logit.info('File to create: ' + filePath);
         } else {
@@ -229,8 +236,12 @@ function processFoundRecords(searchObj, queryObj, records) {
         }
     }
     if (!queryObj.download) {
+        if (totalErrors > 0) {
+            logit.warn('Finished searching for files. %s file(s) will not be saved (see output above).', totalErrors);
+        }
         process.exit(1);
     }
+
 
     // save both the sync hash file and record as file.
     function saveFoundFile(file, record) {
@@ -289,7 +300,6 @@ function processFoundRecords(searchObj, queryObj, records) {
 /*
  * Get a list of all the files and add it to "filesToPreLoad"
  */
-
 function resyncExistingFiles() {
     var watchedFolders = Object.keys(config.roots);
     var roots = [];
@@ -420,6 +430,7 @@ function exportCurrentSetup(exportConfigPath) {
     logit.info('Creating new config file...');
     var exportConfig = {
         "roots": config.roots,
+        "search": config.search,
         "folders": configLoader.getCustomFolders(config),
         "preLoad": true,
         "createAllFolders": true
