@@ -1,7 +1,8 @@
 # FileSync Changes
 
 * 2016-01-09 (**Version 3.0.4**)
- * Allow saving the sys_id and other meta data about a record (fixes #5). All communications with a record will now use the sys_id except the first which uses the defined property in the config folders list.
+ * Allow saving the sys_id and other meta data about a record (fixes #5). All communications with a record will now use the sys_id except the first which uses the defined property in the config folders list
+ * Tables that are extended no longer save files from their descendants (fixes #20)
 
 * 2015-12-19 (**Version 3.0.3**)
  * Fix search issue where sync data records were not being saved on slow machines (File I/O racing is bad)

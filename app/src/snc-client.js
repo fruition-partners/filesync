@@ -170,6 +170,8 @@ function sncClient(config) {
             };
             if (query.query) {
                 parms.parmValue = query.query;
+                // ensures that tables that are extended are still restricted to 1 table
+                parms.parmValue += "^sys_class_name=" + tableName;
             }
             if (query.rows) {
                 parms.rows = query.rows;
