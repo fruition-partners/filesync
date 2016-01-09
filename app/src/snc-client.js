@@ -160,23 +160,26 @@ function sncClient(config) {
         }
 
         function getRecords(query, callback) {
-            var q = query,
-                rows = 1;
-            if (query.query) {
-                q = query.query;
-            }
-            if (query.rows) {
-                rows = query.rows;
-            }
-
-            send({
+            var parms = {
                 table: tableName,
                 action: 'getRecords',
                 parmName: 'query',
-                parmValue: q,
-                rows: rows,
+                parmValue: query,
+                rows: 1,
                 callback: callback
-            });
+            };
+            if (query.query) {
+                parms.parmValue = query.query;
+            }
+            if (query.rows) {
+                parms.rows = query.rows;
+            }
+            if (query.sys_id) {
+                parms.parmName = 'sys_id';
+                parms.parmValue = query.sys_id;
+            }
+
+            send(parms);
         }
 
         function get(id, callback) {
@@ -194,15 +197,27 @@ function sncClient(config) {
             //send({table: tableName, action: 'insert', postObj: obj, callback: callback});
         }
 
-        function update(query, obj, callback) {
-            send({
+        /**
+         * Update an instance record
+         * @param query {object} - contains query data
+         * @param callback {function}
+         */
+        function update(query, callback) {
+            var parms = {
                 table: tableName,
                 action: 'update',
                 parmName: 'query',
-                parmValue: query,
-                postObj: obj,
+                parmValue: query.query,
+                postObj: query.payload,
                 callback: callback
-            });
+            };
+
+            // sys_id based updates
+            if (query.sys_id) {
+                parms.parmName = 'sys_id';
+                parms.parmValue = query.sys_id;
+            }
+            send(parms);
         }
 
         return {

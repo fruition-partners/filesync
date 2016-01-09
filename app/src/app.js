@@ -111,6 +111,7 @@ function init() {
                 readFile: readFile,
                 writeFile: writeFile,
                 send: send,
+                push: push,
                 trackFile: trackFile
             }, config);
             return;
@@ -202,6 +203,14 @@ function getFirstRoot() {
     return firstRoot;
 }
 
+function updateFileMeta(file, record) {
+    fileRecords[file].updateMeta({
+        sys_id: record.sys_id,
+        sys_updated_on: record.sys_updated_on,
+        sys_updated_by: record.sys_updated_by
+    });
+}
+
 function processFoundRecords(searchObj, queryObj, records) {
     var firstRoot = getFirstRoot(),
         basePath = config.roots[firstRoot].root,
@@ -255,11 +264,7 @@ function processFoundRecords(searchObj, queryObj, records) {
             return;
         }
 
-        fileRecords[file].updateMeta({
-            sys_id: record.sys_id,
-            sys_updated_on: record.sys_updated_on,
-            sys_updated_by: record.sys_updated_by
-        });
+        updateFileMeta(file, record);
 
         fileRecords[file].saveHash(data, function (saved) {
             if (!saved) {
@@ -564,7 +569,8 @@ function validResponse(err, obj, db, map, fileRecord) {
 }
 
 function receive(file, allDoneCallBack) {
-    var map = fileRecords[file].getSyncMap();
+    var map = fileRecords[file].getSyncMap(),
+        fileMeta = fileRecords[file].getMeta();
 
     logit.debug('Adding:', {
         file: file,
@@ -581,7 +587,8 @@ function receive(file, allDoneCallBack) {
     var db = {
         table: map.table,
         field: map.field,
-        query: map.key + '=' + map.keyValue
+        query: map.key + '=' + map.keyValue,
+        sys_id: fileMeta.sys_id || false
     };
 
     snc.table(db.table).getRecords(db, function (err, obj) {
@@ -592,8 +599,13 @@ function receive(file, allDoneCallBack) {
             return false;
         }
 
+        var record = obj.records[0],
+            objData = record[db.field],
+            objName = record.name; // TODO : use objName instead of file var.
+
+
         // legacy concept (still needed??... TODO: don't allow creation of 0 byte files!)
-        if (obj.records[0][db.field].length < 1) {
+        if (record[db.field].length < 1) {
             logit.warn('**WARNING : this record is 0 bytes'.red);
             fileRecords[file].addError('This file was downloaded as 0 bytes. Ignoring sync. Restart FileSync and then make changes to upload.');
 
@@ -607,10 +619,6 @@ function receive(file, allDoneCallBack) {
 
         logit.info('Received:'.green, db);
 
-        //logit.info('Record name: '+obj.records[0].name);
-        var objData = obj.records[0][db.field];
-        // TODO : use objName instead of file var.
-        var objName = obj.records[0].name;
 
         writeFile(file, objData, function (complete) {
 
@@ -640,8 +648,11 @@ function receive(file, allDoneCallBack) {
                 allDoneCallBack(complete);
 
             } else {
+
+                updateFileMeta(file, record);
+
                 // write out hash for collision detection
-                fileRecords[file].saveHash(obj.records[0][db.field], function (saved) {
+                fileRecords[file].saveHash(record[db.field], function (saved) {
                     if (saved) {
                         notifyUser(msgCodes.RECEIVED_FILE, {
                             table: map.table,
@@ -665,6 +676,9 @@ function receive(file, allDoneCallBack) {
     });
 }
 
+/**
+ * Writes out a file so long as it is empty
+ */
 function writeFile(file, data, callback) {
     // file was discovered as "new" by watcher (chokidar)
     var mustBeEmpty = fileRecords[file].isNewlyDiscoveredFile();
@@ -723,9 +737,24 @@ function readFile(file, callback) {
     });
 }
 
-// push some data to overwrite an instance record
-function push(snc, file, db, map, body, callback) {
-    snc.table(db.table).update(db.query, body, function (err, obj) {
+/**
+ * push some data to overwrite an instance record
+ * @param snc {snc-client}
+ * @param db {object} - the data to use in the post...
+ * var db = {
+            table: map.table,
+            field: map.field,
+            query: map.key + '=' + map.keyValue,
+            sys_id: fileMeta.sys_id || false,
+            payload: {},
+        };
+        // payload for a record update (many fields and values can be set)
+        db.payload[db.field] = data;
+
+ * @param callback {function}
+ */
+function push(snc, db, callback) {
+    snc.table(db.table).update(db, function (err, obj) {
         if (err) {
             handleError(err, db);
             callback(false);
@@ -746,13 +775,20 @@ function send(file, callback) {
     };
     readFile(file, function (data) {
 
-        var map = fileRecords[file].getSyncMap();
+        var map = fileRecords[file].getSyncMap(),
+            fileMeta = fileRecords[file].getMeta();
+
         var snc = getSncClient(map.root);
         var db = {
             table: map.table,
             field: map.field,
-            query: map.key + '=' + map.keyValue
+            query: map.key + '=' + map.keyValue,
+            sys_id: fileMeta.sys_id || false,
+            payload: {},
         };
+        // payload for a record update (many fields and values can be set)
+        db.payload[db.field] = data;
+
 
         // only allow an update if the instance is still in sync with the local env.
         instanceInSync(snc, db, map, file, data, function (err, obj) {
@@ -774,11 +810,9 @@ function send(file, callback) {
                 return;
             }
 
-            var body = {};
-            body[db.field] = data;
 
             logit.info('Updating instance version ("%s").', map.keyValue);
-            push(snc, file, db, map, body, function (complete) {
+            push(snc, db, function (complete) {
                 if (complete) {
                     // update hash for collision detection
                     fileRecords[file].saveHash(data, function (saved) {
@@ -787,7 +821,8 @@ function send(file, callback) {
                                 file: map.keyValue,
                                 open: fileRecords[file].getRecordUrl()
                             });
-                            logit.info('Updated instance version:', db);
+                            logit.info('Updated instance version: %s.%s : query: %s', db.table, db.field, db.query);
+                            logit.debug('Updated instance version:', db);
 
                         } else {
                             notifyUser(msgCodes.COMPLEX_ERROR);
@@ -916,7 +951,9 @@ function instanceInSync(snc, db, map, file, newData, callback) {
             return false;
         }
 
-        logit.info('Received:'.green, db);
+        logit.info('Received: %s.%s query: %s sys_id ? %s'.green, db.table, db.field, db.query, db.sys_id);
+        logit.debug('Received:'.green, db);
+
         var remoteVersion = obj.records[0][db.field],
             remoteHash = makeHash(remoteVersion);
 

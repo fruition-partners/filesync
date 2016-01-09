@@ -75,6 +75,21 @@ method.getMetaFilePath = function () {
     return hashFile;
 };
 
+/**
+ * Removes the hash/meta file
+ */
+method.clearMetaFile = function (callback) {
+    var path = this.getMetaFilePath();
+    var logger = this.logger;
+    fs.remove(path, function (err) {
+        if (err) {
+            logger.warn('Error clearing cache file...', err);
+            callback(false);
+        } else {
+            callback(true);
+        }
+    })
+};
 
 method.getFileName = function () {
     return path.basename(this.filePath);
@@ -98,7 +113,7 @@ method.debug = function () {
 };
 
 method.getLocalHash = function () {
-    var metaData = this._getMeta();
+    var metaData = this.getMeta();
     if (metaData) {
         return metaData.syncHash;
     }
@@ -139,13 +154,20 @@ method._saveMeta = function (callback) {
     });
 };
 
-method._getMeta = function () {
-    var metaFilePath = this.getMetaFilePath();
-    var fContents = '';
+method.getMeta = function () {
+    // have we already got the meta object cached?
+    if (this.meta.syncHash) {
+        return this.meta;
+    }
+
+    var metaFilePath = this.getMetaFilePath(),
+        fContents = '',
+        metaObj;
 
     try {
         fContents = fs.readFileSync(metaFilePath, 'utf8');
-        var metaObj = JSON.parse(fContents);
+        metaObj = JSON.parse(fContents);
+        this.meta = metaObj;
         return metaObj;
     } catch (err) {
         // don't care. (the calling function will then fail the sync check as desired)

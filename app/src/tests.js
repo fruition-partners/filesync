@@ -7,6 +7,7 @@ var api,
 
 var testFile = {
     name: 'JSUtil',
+    field: 'script',
     suffix: 'js',
     folder: 'script_includes',
     table: 'sys_script_include'
@@ -25,6 +26,7 @@ function runTests(apiObj, configObj) {
     // *******************************
     // Queue all tests here
 
+    testQueue.push(clearTestFileHistory);
     testQueue.push(testDownload);
     testQueue.push(testUpdateRecord);
     testQueue.push(testSyncConflict);
@@ -78,6 +80,13 @@ function getTestFilePath() {
     return testFilePath;
 }
 
+function clearTestFileHistory(callback) {
+    logger.test('TEST RUNNING: clearTestFileHistory()'.yellow);
+    var testFilePath = getTestFilePath();
+    var fileObj = api.trackFile(testFilePath);
+    fileObj.clearMetaFile(callback);
+}
+
 function getTestFile(callback) {
     var testFilePath = getTestFilePath();
 
@@ -107,15 +116,19 @@ function testDownload(callback) {
     }
 }
 
-function updateRecord(snc, table, query, body, callback) {
-    logger.test('Attempting record update:', table, query);
-    snc.table(table).update(query, body, function (err, obj) {
-        if (err) {
+/**
+ * Wrapper for api.push (nothing more)
+ */
+function updateRecord(snc, db, callback) {
+    logger.test('Attempting record update:', db.table, db.query, db.field);
+
+    api.push(snc, db, function (complete) {
+        if (!complete) {
             logger.test('Could not save record'.red);
             callback(false);
             return;
         }
-        callback(true);
+        callback(complete);
     });
 }
 
@@ -209,7 +222,15 @@ function testSyncConflict(callback) {
             'script': data + "\n// " + uniqueString
         };
 
-        updateRecord(snc, testFile.table, 'name=' + testFile.name, body, recordSaved);
+        var db = {
+            table: testFile.table,
+            query: 'name=' + testFile.name,
+            field: testFile.field,
+            sys_id: testFile.sys_id,
+            payload: body
+        };
+
+        updateRecord(snc, db, recordSaved);
     });
 
     function recordSaved(complete) {
