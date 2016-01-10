@@ -211,44 +211,67 @@ function updateFileMeta(file, record) {
     });
 }
 
+/**
+ * Adds some text to the end of the filename
+ * @param postFix {string} - text to add
+ * @param path {string} - current file path or file name
+ * @return {string} - updated path
+ */
+function updateFileName(postFix, path) {
+    var extension = path.split('.').pop(),
+        regEx = new RegExp('\.' + extension),
+        updated = path.replace(regEx, postFix + '.' + extension);
+
+    return updated;
+}
+
 function processFoundRecords(searchObj, queryObj, records) {
     var firstRoot = getFirstRoot(),
         basePath = config.roots[firstRoot].root,
         totalFilesToSave = 0,
         totalErrors = 0;
 
-    for (var i in records) {
-        var record = records[i],
-            filePath = basePath + '/' + record.fileName;
+    processRecords();
 
-        // seems like protected records that are read-only hide certain fields from view
-        if (typeof records[i].recordData == 'undefined') {
-            logit.warn('Found but will ignore to protected record: ' + filePath);
-            totalErrors++;
-            continue;
-        }
+    function processRecords() {
+        for (var i in records) {
+            var record = records[i],
+                filePath = basePath + '/' + record.fileName;
 
-        var validData = record.recordData.length > 0;
-        if (validData) {
-            logit.info('File to create: ' + filePath);
-        } else {
-            logit.info('Found but will ignore due to no content: ' + filePath);
-            totalErrors++;
-        }
+            // allow records with the same name to be saved properly
+            if (config.ensureUniqueNames) {
+                filePath = updateFileName('_' + record.sys_id, filePath);
+            }
 
-        if (queryObj.download) {
-            // don't save files of 0 bytes as this will confuse everyone
+            // seems like protected records that are read-only hide certain fields from view
+            if (typeof records[i].recordData == 'undefined') {
+                logit.warn('Found but will ignore to protected record: ' + filePath);
+                totalErrors++;
+                continue;
+            }
+
+            var validData = record.recordData.length > 0;
             if (validData) {
-                totalFilesToSave++;
-                saveFoundFile(filePath, record);
+                logit.info('File to create: ' + filePath);
+            } else {
+                logit.info('Found but will ignore due to no content: ' + filePath);
+                totalErrors++;
+            }
+
+            if (queryObj.download) {
+                // don't save files of 0 bytes as this will confuse everyone
+                if (validData) {
+                    totalFilesToSave++;
+                    saveFoundFile(filePath, record);
+                }
             }
         }
-    }
-    if (!queryObj.download) {
-        if (totalErrors > 0) {
-            logit.warn('Finished searching for files. %s file(s) will not be saved (see output above).', totalErrors);
+        if (!queryObj.download) {
+            if (totalErrors > 0) {
+                logit.warn('Finished searching for files. %s file(s) will not be saved (see output above).', totalErrors);
+            }
+            process.exit(1);
         }
-        process.exit(1);
     }
 
 
@@ -294,7 +317,8 @@ function processFoundRecords(searchObj, queryObj, records) {
 
     function doneSaving() {
         if (totalErrors > 0) {
-            logit.warn('Finished creating files with errors. %s file(s) failed to save or had 0 bytes as content (see output above).', totalErrors);
+            logit.warn('Finished creating files with errors. %s file(s) failed to save or had 0 bytes as content (see output above).',
+                totalErrors);
         } else {
             logit.info('Finished creating files.');
         }
@@ -397,7 +421,8 @@ function displayHelp() {
                 '--test                   :: will self test the tool and connection',
                 '--resync                 :: will re-download all the files to get the latest server version',
                 '--export <file>          :: export the current setup including downloaded records for quickstart',
-                '--search <search config> :: will run a search on the instance for matching records based on the defined search config in the app.config.json file',
+                '--search <search config> :: will run a search on the instance for matching records based on the ' +
+                                            'defined search config in the app.config.json file',
                 '--download               :: applies to searching and will download the found records'
 
                ];

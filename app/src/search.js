@@ -118,7 +118,7 @@ method.getResults = function (queryObj, callback) {
                     recordName = record[locDB.key],
                     sys_id = record.sys_id,
                     fileSystemSafeName = normaliseRecordName(recordName),
-                    fileName = locDB.folder + '/' + fileSystemSafeName + '_' + sys_id + '.' + locDB.fieldSuffix,
+                    fileName = locDB.folder + '/' + fileSystemSafeName + '.' + locDB.fieldSuffix,
                     recordData = record[fieldName];
 
 
