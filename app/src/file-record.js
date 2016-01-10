@@ -60,7 +60,8 @@ method.getRecordUrl = function () {
         rootConfig = this.config.roots[root],
         host = rootConfig.host,
         protocol = rootConfig.protocol ? rootConfig.protocol : 'https',
-        url = protocol + '://' + host + '/' + syncMap.table + '.do?sysparm_query=' + syncMap.key + '=' + syncMap.keyValue;
+        meta = this.getMeta(),
+        url = protocol + '://' + host + '/' + syncMap.table + '.do?sys_id=' + meta.sys_id;
 
     // in order to work with notify we must have a strictly valid URL (no spaces)
     url = url.replace(/\s/g, "%20");
@@ -88,7 +89,7 @@ method.clearMetaFile = function (callback) {
         } else {
             callback(true);
         }
-    })
+    });
 };
 
 method.getFileName = function () {

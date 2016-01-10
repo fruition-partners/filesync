@@ -1,5 +1,9 @@
 # FileSync Changes
 
+* 2016-01-10 (**Version 3.0.5**)
+ * Search now saves the sys_id in the file name to handle duplicate name issues (fixes #17)
+ * Search now replaces characters that would be invalid for file names so that such records can be saved (fixes #18).
+
 * 2016-01-09 (**Version 3.0.4**)
  * Allow saving the sys_id and other meta data about a record (fixes #5). All communications with a record will now use the sys_id except the first which uses the defined property in the config folders list
  * Tables that are extended no longer save files from their descendants (fixes #20)

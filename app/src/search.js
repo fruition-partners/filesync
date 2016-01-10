@@ -77,6 +77,20 @@ method.getResults = function (queryObj, callback) {
         logger.warn('No table config defined for: %s', queryObj.table);
     }
 
+    /**
+     * Remove problematic characters from a string
+     * @param pathPart {string} - a folder or file name (not full path) to normalise
+     * @return {string} - updated path
+     */
+    function normaliseRecordName(pathPart) {
+        var newName = pathPart;
+        newName = newName.replace(/\//g, '_');
+        newName = newName.replace(/\*/g, '_');
+        newName = newName.replace(/\\/g, '_');
+
+        return newName;
+    }
+
 
     function getRecords(fieldName, db, cb) {
         //logger.debug('args:', arguments);
@@ -102,12 +116,16 @@ method.getResults = function (queryObj, callback) {
             for (recordIndex in obj.records) {
                 var record = obj.records[recordIndex],
                     recordName = record[locDB.key],
-                    fileName = locDB.folder + '/' + recordName + '.' + locDB.fieldSuffix,
+                    sys_id = record.sys_id,
+                    fileSystemSafeName = normaliseRecordName(recordName),
+                    fileName = locDB.folder + '/' + fileSystemSafeName + '_' + sys_id + '.' + locDB.fieldSuffix,
                     recordData = record[fieldName];
+
 
                 logger.debug('Record Found: "' + recordName + '"');
                 logger.debug('- Created on ' + record.sys_created_on);
                 logger.debug('- Updated by ' + record.sys_updated_by + ' on ' + record.sys_updated_on);
+
 
                 var isSCSSRecord = FileRecordUtil.isSCSS(recordName);
                 // check that it is really a SCSS file and not a CSS file!
@@ -118,7 +136,7 @@ method.getResults = function (queryObj, callback) {
                     continue; // skip, not applicable for this folder
                 }
 
-                recordsFound[fileName] = {
+                recordsFound[sys_id] = {
                     fileName: fileName,
                     recordData: recordData
                 };
@@ -126,7 +144,7 @@ method.getResults = function (queryObj, callback) {
                 var additionalProps = ['sys_id', 'sys_updated_on', 'sys_updated_by'];
                 for (var i = 0; i < additionalProps.length; i++) {
                     var key = additionalProps[i];
-                    recordsFound[fileName][key] = record[key];
+                    recordsFound[sys_id][key] = record[key];
                 }
 
             }
