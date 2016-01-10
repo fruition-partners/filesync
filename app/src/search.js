@@ -77,21 +77,6 @@ method.getResults = function (queryObj, callback) {
         logger.warn('No table config defined for: %s', queryObj.table);
     }
 
-    /**
-     * Remove problematic characters from a string
-     * @param pathPart {string} - a folder or file name (not full path) to normalise
-     * @return {string} - updated path
-     */
-    function normaliseRecordName(pathPart) {
-        var newName = pathPart;
-        newName = newName.replace(/\//g, '_');
-        newName = newName.replace(/\*/g, '_');
-        newName = newName.replace(/\\/g, '_');
-
-        return newName;
-    }
-
-
     function getRecords(fieldName, db, cb) {
         //logger.debug('args:', arguments);
 
@@ -117,8 +102,6 @@ method.getResults = function (queryObj, callback) {
                 var record = obj.records[recordIndex],
                     recordName = record[locDB.key],
                     sys_id = record.sys_id,
-                    fileSystemSafeName = normaliseRecordName(recordName),
-                    fileName = locDB.folder + '/' + fileSystemSafeName + '.' + locDB.fieldSuffix,
                     recordData = record[fieldName];
 
 
@@ -137,8 +120,11 @@ method.getResults = function (queryObj, callback) {
                 }
 
                 recordsFound[sys_id] = {
-                    fileName: fileName,
-                    recordData: recordData
+                    recordName: recordName,
+                    recordData: recordData,
+                    table: locDB.table,
+                    folder: locDB.folder,
+                    fieldSuffix: locDB.fieldSuffix
                 };
 
                 var additionalProps = ['sys_id', 'sys_updated_on', 'sys_updated_by'];

@@ -211,6 +211,21 @@ function updateFileMeta(file, record) {
     });
 }
 
+
+/**
+ * Remove problematic characters for saving to a file
+ * @param pathPart {string} - a folder or file name (not full path) to normalise
+ * @return {string} - updated path
+ */
+function normaliseRecordName(pathPart) {
+    var newName = pathPart;
+    newName = newName.replace(/\//g, '_');
+    newName = newName.replace(/\*/g, '_');
+    newName = newName.replace(/\\/g, '_');
+
+    return newName;
+}
+
 /**
  * Adds some text to the end of the filename
  * @param postFix {string} - text to add
@@ -235,8 +250,13 @@ function processFoundRecords(searchObj, queryObj, records) {
 
     function processRecords() {
         for (var i in records) {
-            var record = records[i],
-                filePath = basePath + '/' + record.fileName;
+            var record = records[i];
+
+            var fileSystemSafeName = normaliseRecordName(record.recordName);
+            // TODO : support saving in subdirs via config.folders[record.folder].subDirPattern
+            var fileName = record.folder + '/' + fileSystemSafeName + '.' + record.fieldSuffix;
+            var filePath = basePath + '/' + fileName;
+
 
             // allow records with the same name to be saved properly
             if (config.ensureUniqueNames) {
