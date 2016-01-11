@@ -396,10 +396,10 @@ Nice to haves
 - [x] auto download records created or updated by a given user ID (via ```--search``` option)
 - [x] notifications are clickable and load the record in the browser
 - [ ] offline support? (keep track of files that are queued to upload when the connection is available again and retry).. maybe not. This could be dangerous if records get updated without someone to test them. Potentially workable if the last queued file is less than 3 minutes ago to cater for flaky mobile/roaming connections.
-- [ ] save meta data received in request for user info (eg, sys_updated_on, sys_updated_by, sys_mod_count, description)
+- [x] save meta data received in request for user info (eg, sys_updated_on, sys_updated_by, sys_mod_count, description) (currently viewable in the `.sync_data/` files)
 - [ ] config option to log details to log file (help others send log info)
 - [x] download records on startup provided by a list (See ```"preLoad"``` in app.config.json)
-- [ ] add windows support for fancy/OS style notifications
+- [x] add windows support for fancy/OS style notifications
 
 
 ## Contribution workflow
