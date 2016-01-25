@@ -343,15 +343,15 @@ The search component enforces using the config file instead of the command line 
 
  * Test the search system in demo mode:
  ```
- ./node-darwin --config ~/my-conf.json --search
+ ./node-darwin src/app --config ~/my-conf.json --search
  ```
  * Search based on a pre-defined search config (defined in *my-conf.json*):
  ```
- ./node-darwin --config ~/my-conf.json --search mine
+ ./node-darwin src/app --config ~/my-conf.json --search mine
  ```
  * Download records found via search (overwrites existing local files if they exist):
 ```
-./node-darwin --config ~/my-conf.json --search mine --download
+./node-darwin src/app --config ~/my-conf.json --search mine --download
 ```
 
 Note that the defaults are to search in demo mode without downloading any records.
