@@ -1,0 +1,46 @@
+{
+    "roots": {
+        "/Users/joe.developer/instance/records": {
+            "host": "some.special.instance.com:16001",
+            "protocol": "http",
+            "user": "admin",
+            "pass": "admin",
+            "preLoadList": {
+                "script_includes": ["JSUtil.js", "Transform.js"]
+            }
+        },
+        "c:/dev/project_a": {
+            "host": "demo001.service-now.com",
+            "user": "admin",
+            "pass": "admin"
+        },
+        "c:/dev/project_b": {
+            "host": "demo002.service-now.com",
+            "auth": "YWRtaW46YWRtaW4="
+        }
+    },
+
+    "search": {
+        "mine": {
+            "query": "sys_updated_by=javascript:gs.getUserName()^ORsys_created_by=javascript:gs.getUserName()^ORDERBYDESCsys_updated_on",
+            "records_per_search": "100"
+        },
+        "team": {
+            "query": "sys_created_on>javascript:gs.dateGenerate('2015-03-25','23:59:59')^sys_created_by!=javascript:gs.getUserName()^sys_updated_by!=javascript:gs.getUserName()^sys_created_by!=admin^ORDERBYDESCsys_updated_on",
+            "records_per_search": "100"
+        },
+        "script-includes": {
+            "table": "sys_script_include",
+            "query": "sys_created_on>javascript:gs.dateGenerate('2015-03-25','23:59:59')",
+            "records_per_search": "1",
+            "download": true
+        }
+    },
+
+    "preLoad": true,
+    "createAllFolders": true,
+
+    "ensureUniqueNames": false,
+    "ignoreDefaultFolders": false,
+    "debug": false
+}
